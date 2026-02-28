@@ -73,6 +73,8 @@
     .mark-svg.glow-o { filter: drop-shadow(0 0 10px var(--o)) drop-shadow(0 0 28px var(--o)) drop-shadow(0 0 50px rgba(91,158,245,0.52)); }
     @keyframes drawXLine  { to { stroke-dashoffset: 0; } }
     @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+    .mark-svg.mark-oldest { opacity: 0.26; filter: none !important; animation: markBounce 170ms cubic-bezier(0.34,1.56,0.64,1) forwards, oldestPulse 1.8s ease-in-out 0.17s infinite; }
+    @keyframes oldestPulse { 0%,100%{opacity:0.20} 50%{opacity:0.38} }
 
     /* WIN LINE */
     .win-line {
@@ -468,7 +470,7 @@
   // ════════════════════════════════════════════════════════════
   // GAME STATE & DOM
   // ════════════════════════════════════════════════════════════
-  let G = { board:Array(9).fill(null), turn:'X', scores:{X:0,O:0,D:0}, over:false, winner:null, winIdx:-1 };
+  let G = { board:Array(9).fill(null), turn:'X', scores:{X:0,O:0,D:0}, over:false, winner:null, winIdx:-1, placementOrder:[] };
 
   const dotX    = document.getElementById('dot-x');
   const dotO    = document.getElementById('dot-o');
@@ -489,33 +491,39 @@
       const [a,b,c]=WINS[i];
       if (board[a]&&board[a]===board[b]&&board[a]===board[c]) return {winner:board[a],idx:i};
     }
-    return board.every(Boolean)?{winner:'D',idx:-1}:null;
+    return null;
   }
 
   function move(idx, fromNet=false) {
     if (G.over||G.board[idx]) return;
     if (net.mode!=='local'&&!fromNet&&G.turn!==net.myRole) return;
 
+    clearOldestMarker();
     G.board[idx]=G.turn;
+    G.placementOrder.push(idx);
     sfxTap(G.turn); vibrate(14);
     placeMark(idx,G.turn);
     fireParticles(idx,G.turn);
 
     if (net.mode!=='local'&&!fromNet) sendNet({type:'move',idx});
 
+    // Check win BEFORE evicting the oldest piece
     const result=checkWin(G.board);
     if (result) {
       G.over=true; G.winner=result.winner; G.winIdx=result.idx;
       G.scores[result.winner]++;
       dotX.classList.remove('active'); dotO.classList.remove('active');
       updateBadgeTurn();
-      if (result.winner!=='D') {
-        setTimeout(()=>{ highlightWinCells(WINS[result.idx],result.winner); drawWinLine(result.idx,result.winner); },180);
-        setTimeout(()=>{ sfxWin(result.winner); vibrate([30,40,80,40,140]); showOverlay(result.winner); },620);
-      } else {
-        setTimeout(()=>{ sfxDraw(); vibrate([20,50,20]); showOverlay('D'); },420);
-      }
+      setTimeout(()=>{ highlightWinCells(WINS[result.idx],result.winner); drawWinLine(result.idx,result.winner); },180);
+      setTimeout(()=>{ sfxWin(result.winner); vibrate([30,40,80,40,140]); showOverlay(result.winner); },620);
     } else {
+      // Sliding window: if 7th piece placed, evict the oldest
+      if (G.placementOrder.length > 6) {
+        const oldIdx=G.placementOrder.shift();
+        G.board[oldIdx]=null;
+        removeMarkAnimated(oldIdx);
+      }
+      updateOldestMarker();
       G.turn=G.turn==='X'?'O':'X';
       updateDots();
     }
@@ -551,6 +559,29 @@
 
   function placeMark(idx,player) {
     const cell=cellEls[idx]; cell.classList.add('filled'); cell.appendChild(createMarkSVG(player));
+  }
+
+  function clearOldestMarker() {
+    document.querySelectorAll('.mark-oldest').forEach(m=>m.classList.remove('mark-oldest'));
+  }
+  function updateOldestMarker() {
+    clearOldestMarker();
+    if (G.placementOrder.length === 6 && !G.over) {
+      const mark = cellEls[G.placementOrder[0]]?.querySelector('.mark-svg');
+      if (mark) mark.classList.add('mark-oldest');
+    }
+  }
+  function removeMarkAnimated(idx) {
+    const cell=cellEls[idx];
+    const mark=cell.querySelector('.mark-svg');
+    if (mark) {
+      mark.style.transition='transform 200ms ease-in, opacity 200ms ease-in';
+      mark.style.transform='scale(0)';
+      mark.style.opacity='0';
+      setTimeout(()=>{ cell.classList.remove('filled','win-cell'); cell.innerHTML=''; }, 220);
+    } else {
+      cell.classList.remove('filled','win-cell'); cell.innerHTML='';
+    }
   }
 
   function highlightWinCells(combo,winner) {
@@ -641,7 +672,8 @@
       : G.winner==='X' ? 'O'
       : G.winner==='O' ? 'X'
       : G.turn==='X'   ? 'O' : 'X';
-    G={...G, board:Array(9).fill(null), turn:next, over:false, winner:null, winIdx:-1};
+    G={...G, board:Array(9).fill(null), turn:next, over:false, winner:null, winIdx:-1, placementOrder:[]};
+    clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
     winLine.setAttribute('x1',0);winLine.setAttribute('y1',0);
     winLine.setAttribute('x2',0);winLine.setAttribute('y2',0);
@@ -804,7 +836,8 @@
   }
 
   function startOnlineGame() {
-    G={board:Array(9).fill(null),turn:'X',scores:G.scores,over:false,winner:null,winIdx:-1};
+    G={board:Array(9).fill(null),turn:'X',scores:G.scores,over:false,winner:null,winIdx:-1,placementOrder:[]};
+    clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
     winLine.setAttribute('x1',0);winLine.setAttribute('y1',0);
     winLine.setAttribute('x2',0);winLine.setAttribute('y2',0);
@@ -822,7 +855,8 @@
     destroyPeer();
     net={mode:'local',peer:null,conn:null,myRole:null,code:null};
     document.getElementById('online-badge').classList.add('hidden');
-    G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0,D:0},over:false,winner:null,winIdx:-1};
+    G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0,D:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
+    clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
     winLine.setAttribute('x1',0);winLine.setAttribute('y1',0);
     winLine.setAttribute('x2',0);winLine.setAttribute('y2',0);
