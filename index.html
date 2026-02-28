@@ -280,6 +280,110 @@
       font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
       color: rgba(255,255,255,0.16);
     }
+
+    /* REACTION BAR */
+    .reaction-bar {
+      display: flex; gap: 7px; align-items: center; justify-content: center;
+    }
+    .reaction-bar.hidden { display: none; }
+    .react-btn {
+      font-size: 20px; width: 38px; height: 38px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04);
+      cursor: pointer; transition: transform 110ms ease-out, background 110ms;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .react-btn:hover { background: rgba(255,255,255,0.10); }
+    .react-btn:active { transform: scale(0.82); }
+    .chat-btn-wrap { position: relative; display: inline-flex; }
+    .chat-unread-dot {
+      position: absolute; top: -3px; right: -3px;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--o);
+      display: none; box-shadow: 0 0 5px var(--o);
+    }
+    .chat-unread-dot.visible { display: block; }
+
+    /* FLOATING REACTION */
+    .floating-reaction {
+      position: fixed; left: 50%; top: 42%;
+      font-size: 62px; line-height: 1; pointer-events: none; z-index: 200;
+      animation: reactFloat 1.5s ease-out forwards;
+    }
+    @keyframes reactFloat {
+      0%   { transform: translate(-50%, 0)     scale(0.35); opacity: 0; }
+      16%  { transform: translate(-50%, -18px) scale(1.32); opacity: 1; }
+      48%  { opacity: 0.88; }
+      100% { transform: translate(-50%, -110px) scale(0.75); opacity: 0; }
+    }
+
+    /* CHAT PANEL */
+    .chat-panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+      background: rgba(6,8,16,0.97);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px 22px 0 0;
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      display: flex; flex-direction: column; max-height: 56vh;
+      transform: translateY(100%);
+      transition: transform 300ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .chat-panel.open { transform: translateY(0); }
+    .chat-panel.hidden { display: none; }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px; flex-shrink: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .chat-title { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.32); }
+    .chat-close-btn {
+      background: none; border: none; color: rgba(255,255,255,0.28); font-size: 18px;
+      cursor: pointer; padding: 2px 6px; font-family: inherit; line-height: 1;
+      transition: color 130ms;
+    }
+    .chat-close-btn:hover { color: rgba(255,255,255,0.65); }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 10px 16px;
+      display: flex; flex-direction: column; gap: 8px; min-height: 60px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chat-empty-msg { font-size: 12px; color: rgba(255,255,255,0.18); text-align: center; padding: 18px 0; letter-spacing: 0.04em; }
+    .chat-msg { display: flex; flex-direction: column; max-width: 76%; animation: msgIn 200ms ease-out; }
+    @keyframes msgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    .chat-msg.mine   { align-self: flex-end;   align-items: flex-end; }
+    .chat-msg.theirs { align-self: flex-start; align-items: flex-start; }
+    .chat-who { font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(255,255,255,0.22); margin-bottom: 3px; }
+    .chat-bubble { padding: 8px 14px; font-size: 14px; line-height: 1.45; word-break: break-word; }
+    .chat-msg.mine   .chat-bubble { background: rgba(255,255,255,0.13); color: rgba(255,255,255,0.88); border-radius: 16px 16px 4px 16px; }
+    .chat-msg.theirs .chat-bubble { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.70); border-radius: 16px 16px 16px 4px; }
+    .chat-input-row {
+      display: flex; gap: 8px; align-items: flex-end;
+      padding: 10px 14px max(env(safe-area-inset-bottom,0px),14px);
+      border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .chat-text-input {
+      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 20px; padding: 10px 16px; color: white; font-size: 14px; font-family: inherit;
+      outline: none; caret-color: var(--o); transition: border-color 150ms;
+    }
+    .chat-text-input:focus { border-color: rgba(255,255,255,0.22); }
+    .chat-text-input::placeholder { color: rgba(255,255,255,0.20); }
+    .chat-send-btn {
+      width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.11); color: rgba(255,255,255,0.60);
+      font-size: 15px; cursor: pointer; transition: all 130ms;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-send-btn:hover { background: rgba(255,255,255,0.20); color: white; }
+    .chat-send-btn:active { transform: scale(0.90); }
+
+    /* SERIES BANNER (inside result overlay) */
+    .series-banner {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      animation: symbolPop 360ms cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    .series-label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+    .series-score { font-size: 28px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+    .series-winner-txt { font-size: 14px; letter-spacing: 0.06em; color: rgba(255,255,255,0.60); }
   </style>
 </head>
 <body>
@@ -372,7 +476,7 @@
           </div>
         </div>
       </div>
-      <span class="score-total" id="score-total"></span>
+      <span class="score-total" id="score-total">to 5</span>
       <div class="score-side score-side-right">
         <span class="score-player x-player">X</span>
         <div class="score-record">
@@ -389,9 +493,39 @@
         </div>
       </div>
     </div>
+    <!-- REACTION BAR (online only) -->
+    <div class="reaction-bar hidden" id="reaction-bar">
+      <button class="react-btn" data-emoji="👏" aria-label="Clap">👏</button>
+      <button class="react-btn" data-emoji="🔥" aria-label="Fire">🔥</button>
+      <button class="react-btn" data-emoji="😅" aria-label="Sweat">😅</button>
+      <button class="react-btn" data-emoji="🎉" aria-label="Party">🎉</button>
+      <button class="react-btn" data-emoji="😤" aria-label="Grr">😤</button>
+      <button class="react-btn" data-emoji="💀" aria-label="Skull">💀</button>
+      <div class="chat-btn-wrap">
+        <button class="react-btn" id="chat-open-btn" aria-label="Chat">💬</button>
+        <span class="chat-unread-dot" id="chat-unread-dot"></span>
+      </div>
+    </div>
   </div>
 
   <div class="turn-dot bottom" id="dot-x"></div>
+
+  <!-- CHAT PANEL (online only) -->
+  <div class="chat-panel hidden" id="chat-panel">
+    <div class="chat-header">
+      <span class="chat-title">Chat</span>
+      <button class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty-msg" id="chat-empty-msg">no messages yet</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" class="chat-text-input" id="chat-text-input"
+        placeholder="message…" maxlength="200"
+        autocomplete="off" autocorrect="on" spellcheck="true" />
+      <button class="chat-send-btn" id="chat-send-btn" aria-label="Send">↑</button>
+    </div>
+  </div>
 
   <script>
   // ════════════════════════════════════════════════════════════
@@ -405,7 +539,8 @@
   ];
   const DIAG_LEN    = Math.round(Math.sqrt(256*256+256*256));
   const WIN_LENGTHS = [272,272,272,272,272,272,DIAG_LEN,DIAG_LEN];
-  const CODE_CHARS  = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars, no I/O
+  const CODE_CHARS    = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars, no I/O
+  const SERIES_TARGET = 5; // first to reach this many wins takes the series
 
   // ════════════════════════════════════════════════════════════
   // CONVERSATION STARTER POOLS
@@ -456,6 +591,8 @@
   // ════════════════════════════════════════════════════════════
   let net = { mode:'local', peer:null, conn:null, myRole:null, code:null };
   let convPromptTimer = null; // pending conversation-prompt timeout (cleared on restart)
+  let chatOpen = false;
+  let chatUnread = 0;
 
   // ════════════════════════════════════════════════════════════
   // CONVERSATION PROMPT HELPERS
@@ -730,17 +867,33 @@
       }
     }
     overlay.appendChild(createMarkSVG(isDraw?'D':winner,true));
-    // In local play X = creator; in online the host (myRole==='X') = creator.
-    const isCreator = net.mode === 'local' ? false : net.myRole === 'X';
-    const convMsg = getConversationPrompt(winner, isCreator);
-    // Show conversation prompt as a separate overlay AFTER the result animation settles.
-    if (convMsg) {
+    const seriesWon = !isDraw && G.scores[winner] >= SERIES_TARGET;
+    if (seriesWon) {
       clearTimeout(convPromptTimer);
-      convPromptTimer = setTimeout(() => showConversationPrompt(convMsg, false), 820);
+      const banner = document.createElement('div');
+      banner.className = 'series-banner';
+      const winLabel = document.createElement('span');
+      winLabel.className = 'series-winner-txt';
+      winLabel.textContent = winner + ' wins the series';
+      const scoreLabel = document.createElement('span');
+      scoreLabel.className = 'series-score';
+      scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
+      banner.appendChild(winLabel);
+      banner.appendChild(scoreLabel);
+      overlay.appendChild(banner);
+    } else {
+      // In local play X = creator; in online the host (myRole==='X') = creator.
+      const isCreator = net.mode === 'local' ? false : net.myRole === 'X';
+      const convMsg = getConversationPrompt(winner, isCreator);
+      // Show conversation prompt as a separate overlay AFTER the result animation settles.
+      if (convMsg) {
+        clearTimeout(convPromptTimer);
+        convPromptTimer = setTimeout(() => showConversationPrompt(convMsg, false), 820);
+      }
     }
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
-    btn.setAttribute('role','button'); btn.setAttribute('aria-label','Play again');
-    btn.addEventListener('click',()=>restart()); overlay.appendChild(btn);
+    btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesWon ? 'New series' : 'Play again');
+    btn.addEventListener('click', () => seriesWon ? resetSeries() : restart()); overlay.appendChild(btn);
     document.body.appendChild(overlay);
     if(!isDraw) setTimeout(()=>createBurstParticles(overlay,color),120);
   }
@@ -775,8 +928,97 @@
     bump(document.getElementById('sc-o-l'), xW);
     bump(document.getElementById('sc-x-w'), xW);
     bump(document.getElementById('sc-x-l'), oW);
-    document.getElementById('score-total').textContent =
-      total === 0 ? '' : total + (total === 1 ? ' match' : ' matches');
+    document.getElementById('score-total').textContent = 'to ' + SERIES_TARGET;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // REACTIONS
+  // ════════════════════════════════════════════════════════════
+  function showFloatingReaction(emoji) {
+    const el = document.createElement('div');
+    el.className = 'floating-reaction';
+    el.textContent = emoji;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
+  function sendReaction(emoji) {
+    if (net.mode === 'local' || !net.conn || !net.conn.open) return;
+    showFloatingReaction(emoji);
+    sendNet({ type: 'reaction', emoji });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CHAT
+  // ════════════════════════════════════════════════════════════
+  function openChat() {
+    chatOpen = true; chatUnread = 0;
+    document.getElementById('chat-unread-dot').classList.remove('visible');
+    const panel = document.getElementById('chat-panel');
+    panel.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
+    setTimeout(() => document.getElementById('chat-text-input').focus(), 320);
+  }
+
+  function closeChat() {
+    chatOpen = false;
+    const panel = document.getElementById('chat-panel');
+    panel.classList.remove('open');
+    setTimeout(() => panel.classList.add('hidden'), 310);
+  }
+
+  function appendChatMsg(text, mine) {
+    const msgs = document.getElementById('chat-messages');
+    const emptyEl = document.getElementById('chat-empty-msg');
+    if (emptyEl) emptyEl.remove();
+
+    const myRole = net.myRole || 'X';
+    const theirRole = myRole === 'X' ? 'O' : 'X';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ' + (mine ? 'mine' : 'theirs');
+
+    const who = document.createElement('div');
+    who.className = 'chat-who';
+    who.textContent = mine ? myRole + ' · you' : theirRole + ' · them';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.textContent = text;
+
+    wrap.appendChild(who);
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chat-text-input');
+    const text = input.value.trim().slice(0, 200);
+    if (!text || net.mode === 'local' || !net.conn || !net.conn.open) return;
+    appendChatMsg(text, true);
+    sendNet({ type: 'chat', text });
+    input.value = '';
+  }
+
+  function resetChat() {
+    chatOpen = false; chatUnread = 0;
+    document.getElementById('chat-unread-dot').classList.remove('visible');
+    const panel = document.getElementById('chat-panel');
+    panel.classList.remove('open');
+    panel.classList.add('hidden');
+    document.getElementById('chat-messages').innerHTML =
+      '<div class="chat-empty-msg" id="chat-empty-msg">no messages yet</div>';
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // SERIES (first to SERIES_TARGET wins)
+  // ════════════════════════════════════════════════════════════
+  function resetSeries(fromNet=false) {
+    G.scores = { X:0, O:0, D:0 };
+    updateScoreBar();
+    if (net.mode !== 'local' && !fromNet) sendNet({ type: 'series-reset' });
+    restart(fromNet);
   }
 
   function restart(fromNet=false) {
@@ -942,6 +1184,15 @@
     if(!data||typeof data.type!=='string') return;
     if(data.type==='move'&&typeof data.idx==='number') move(data.idx,true);
     if(data.type==='restart') restart(true);
+    if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
+    if(data.type==='chat'&&typeof data.text==='string') {
+      appendChatMsg(data.text.slice(0,200), false);
+      if (!chatOpen) {
+        chatUnread++;
+        document.getElementById('chat-unread-dot').classList.add('visible');
+      }
+    }
+    if(data.type==='series-reset') resetSeries(true);
   }
 
   function onConnClose() { updateBadge('disconnected'); }
@@ -963,6 +1214,8 @@
     winSvg.style.filter='';
     const ov=document.querySelector('.result-overlay');if(ov)ov.remove();
     document.getElementById('online-badge').classList.remove('hidden');
+    document.getElementById('reaction-bar').classList.remove('hidden');
+    resetChat();
     updateBadge('connected');
     updateDots();
   }
@@ -974,6 +1227,8 @@
     destroyPeer();
     net={mode:'local',peer:null,conn:null,myRole:null,code:null};
     document.getElementById('online-badge').classList.add('hidden');
+    document.getElementById('reaction-bar').classList.add('hidden');
+    resetChat();
     G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0,D:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -998,6 +1253,19 @@
     }
     updateBadgeTurn();
   }
+
+  // ════════════════════════════════════════════════════════════
+  // REACTION & CHAT EVENTS
+  // ════════════════════════════════════════════════════════════
+  document.querySelectorAll('.react-btn[data-emoji]').forEach(btn => {
+    btn.addEventListener('click', () => sendReaction(btn.dataset.emoji));
+  });
+  document.getElementById('chat-open-btn').addEventListener('click', openChat);
+  document.getElementById('chat-close-btn').addEventListener('click', closeChat);
+  document.getElementById('chat-send-btn').addEventListener('click', sendChat);
+  document.getElementById('chat-text-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+  });
 
   // ════════════════════════════════════════════════════════════
   // LOBBY EVENTS
