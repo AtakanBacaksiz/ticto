@@ -1,0 +1,15 @@
+{
+  "name": "ticto",
+  "version": "1.0.0",
+  "description": "PeerJS signalling server for ticto",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "peer": "^0.9.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
