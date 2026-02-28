@@ -247,6 +247,39 @@
     #badge-turn { font-size: 10px; color: rgba(255,255,255,0.35); }
     .badge-leave { background: none; border: none; color: rgba(255,255,255,0.22); font-size: 11px; font-family: inherit; cursor: pointer; padding: 1px 0 1px 4px; letter-spacing: 0.03em; transition: color 140ms; }
     .badge-leave:hover { color: rgba(255,255,255,0.60); }
+
+    /* SCORE BAR */
+    .score-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: min(88vw, calc(100dvh - 200px), 520px);
+      padding: 0 4px;
+    }
+    .score-side { display: flex; align-items: center; gap: 8px; }
+    .score-side-right { flex-direction: row-reverse; }
+    .score-player {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .o-player { color: var(--o); opacity: 0.80; }
+    .x-player { color: var(--x); opacity: 0.80; }
+    .score-record { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .score-nums { display: flex; align-items: baseline; gap: 4px; }
+    .sc-n {
+      font-size: 16px; font-weight: 600; min-width: 18px; text-align: center;
+      color: rgba(255,255,255,0.60); font-variant-numeric: tabular-nums;
+    }
+    .sc-n.just-bumped { animation: scBump 340ms cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes scBump { 0%{transform:scale(1)} 35%{transform:scale(1.6)} 100%{transform:scale(1)} }
+    .sc-d { font-size: 10px; color: rgba(255,255,255,0.16); }
+    .score-labels { display: flex; gap: 4px; }
+    .sc-lbl {
+      font-size: 8px; letter-spacing: 0.10em; text-transform: uppercase;
+      color: rgba(255,255,255,0.18); min-width: 18px; text-align: center;
+    }
+    .score-total {
+      font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+      color: rgba(255,255,255,0.16);
+    }
   </style>
 </head>
 <body>
@@ -323,6 +356,39 @@
       </div>
     </div>
     <button class="reset-btn" id="reset-btn" aria-label="New game">↺</button>
+    <div class="score-bar" id="score-bar">
+      <div class="score-side">
+        <span class="score-player o-player">O</span>
+        <div class="score-record">
+          <div class="score-nums">
+            <span class="sc-n" id="sc-o-w">0</span>
+            <span class="sc-d">—</span>
+            <span class="sc-n" id="sc-o-l">0</span>
+          </div>
+          <div class="score-labels">
+            <span class="sc-lbl">W</span>
+            <span class="sc-lbl"></span>
+            <span class="sc-lbl">L</span>
+          </div>
+        </div>
+      </div>
+      <span class="score-total" id="score-total"></span>
+      <div class="score-side score-side-right">
+        <span class="score-player x-player">X</span>
+        <div class="score-record">
+          <div class="score-nums">
+            <span class="sc-n" id="sc-x-l">0</span>
+            <span class="sc-d">—</span>
+            <span class="sc-n" id="sc-x-w">0</span>
+          </div>
+          <div class="score-labels">
+            <span class="sc-lbl">L</span>
+            <span class="sc-lbl"></span>
+            <span class="sc-lbl">W</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="turn-dot bottom" id="dot-x"></div>
@@ -533,6 +599,7 @@
     if (result) {
       G.over=true; G.winner=result.winner; G.winIdx=result.idx;
       G.scores[result.winner]++;
+      updateScoreBar();
       dotX.classList.remove('active'); dotO.classList.remove('active');
       updateBadgeTurn();
       setTimeout(()=>{ highlightWinCells(WINS[result.idx],result.winner); drawWinLine(result.idx,result.winner); },180);
@@ -692,6 +759,26 @@
     updateBadgeTurn();
   }
 
+  function updateScoreBar() {
+    const xW = G.scores.X, oW = G.scores.O;
+    const total = xW + oW;
+    function bump(el, val) {
+      const v = String(val);
+      if (el.textContent !== v) {
+        el.textContent = v;
+        el.classList.remove('just-bumped');
+        void el.offsetWidth;
+        el.classList.add('just-bumped');
+      }
+    }
+    bump(document.getElementById('sc-o-w'), oW);
+    bump(document.getElementById('sc-o-l'), xW);
+    bump(document.getElementById('sc-x-w'), xW);
+    bump(document.getElementById('sc-x-l'), oW);
+    document.getElementById('score-total').textContent =
+      total === 0 ? '' : total + (total === 1 ? ' match' : ' matches');
+  }
+
   function restart(fromNet=false) {
     const next = net.mode!=='local' ? 'X'
       : G.winner==='X' ? 'O'
@@ -715,6 +802,7 @@
   cellEls.forEach(c=>c.addEventListener('click',()=>move(+c.dataset.i)));
   resetBtn.addEventListener('click',()=>restart());
   updateDots(); // ← init
+  updateScoreBar(); // ← init
 
   // ════════════════════════════════════════════════════════════
   // ONLINE / PEERJS
@@ -895,7 +983,7 @@
     winLine.style.strokeDasharray=''; winLine.style.strokeDashoffset='';
     winSvg.style.filter='';
     const ov=document.querySelector('.result-overlay');if(ov)ov.remove();
-    updateDots(); showLobby();
+    updateDots(); updateScoreBar(); showLobby();
   }
 
   function updateBadge(status) {
