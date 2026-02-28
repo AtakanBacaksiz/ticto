@@ -705,11 +705,11 @@
     net.peer=null; net.conn=null;
   }
 
-  function createGame(existingCode) {
+  function createGame(existingCode, retries=0) {
     if (typeof Peer==='undefined') { showLobbyErr('Still loading… try again.'); return; }
     const code=existingCode||genCode();
     net.code=code; net.mode='host'; net.myRole='X';
-    sessionStorage.setItem('ticto_host', code);
+    sessionStorage.setItem('ticto_host', JSON.stringify({code, ts:Date.now()}));
     document.getElementById('room-code-display').textContent=code;
     document.getElementById('copy-hint').textContent='tap to copy link';
     document.getElementById('copy-hint').classList.remove('copied');
@@ -717,8 +717,24 @@
     destroyPeer();
     net.peer=new Peer('ticto-'+code, PEER_CONFIG);
     net.peer.on('error',err=>{
-      if(err.type==='unavailable-id'){net.peer.destroy();createGame();}
-      else{sessionStorage.removeItem('ticto_host');showLS('ls-home');showLobbyErr('Could not create room. Check connection.');}
+      console.error('[ticto] host peer error:', err.type, err);
+      net.peer.destroy();
+      if (err.type==='unavailable-id') {
+        // Server may still hold the old ID for a few seconds after an app-switch.
+        // Retry with the same code (with backoff) before giving up and generating a new one.
+        if (existingCode && retries < 4) {
+          setTimeout(()=>createGame(existingCode, retries+1), 1200*(retries+1));
+        } else {
+          createGame(); // give up on this code, get a fresh one
+        }
+      } else if (['network','server-error','socket-error','socket-closed'].includes(err.type) && retries < 3) {
+        // Transient signalling-server errors — retry automatically.
+        setTimeout(()=>createGame(existingCode||code, retries+1), 1500*(retries+1));
+      } else {
+        sessionStorage.removeItem('ticto_host');
+        showLS('ls-home');
+        showLobbyErr('Could not reach the server. Check your connection and try again.');
+      }
     });
     net.peer.on('connection',conn=>{
       if(net.conn){conn.close();return;}
@@ -865,35 +881,27 @@
     } catch(e){}
   });
 
-  // Re-init host peer if app was suspended (no full reload) and peer died
+  // Re-init host peer if app was suspended (no full reload) and peer died.
+  // createGame() handles same-code retry + backoff, so we just delegate to it.
   document.addEventListener('visibilitychange', ()=>{
     if (document.visibilityState!=='visible') return;
     if (net.mode!=='host'||net.conn) return;
     if (net.peer&&!net.peer.destroyed&&!net.peer.disconnected) return;
     const code=net.code; if(!code) return;
-    destroyPeer();
-    net.peer=new Peer('ticto-'+code, PEER_CONFIG);
-    net.peer.on('error',err=>{
-      if(err.type==='unavailable-id'){net.peer.destroy();createGame();}
-      else{sessionStorage.removeItem('ticto_host');net={mode:'local',peer:null,conn:null,myRole:null,code:null};showLobby();showLobbyErr('Connection lost. Create a new game.');}
-    });
-    net.peer.on('connection',conn=>{
-      if(net.conn){conn.close();return;}
-      net.conn=conn;
-      conn.on('open',onConnOpen); conn.on('data',onConnData);
-      conn.on('close',onConnClose); conn.on('error',onConnClose);
-    });
+    createGame(code);
   });
 
-  // Restore host waiting state after a full page reload on mobile
+  // Restore host waiting state after a full page reload on mobile.
+  // Only resumes if the session was saved within the last 3 minutes
+  // (genuine app-switch). Older entries are cleared silently.
   (function checkHostResume() {
-    const code=sessionStorage.getItem('ticto_host');
-    if (!code) return;
-    net.code=code; net.mode='host'; net.myRole='X';
-    document.getElementById('room-code-display').textContent=code;
-    document.getElementById('copy-hint').textContent='tap to copy link';
-    document.getElementById('copy-hint').classList.remove('copied');
-    showLS('ls-waiting');
+    const raw=sessionStorage.getItem('ticto_host');
+    if (!raw) return;
+    let saved; try { saved=JSON.parse(raw); } catch(e) { sessionStorage.removeItem('ticto_host'); return; }
+    if (!saved.code||!saved.ts||Date.now()-saved.ts>3*60*1000) {
+      sessionStorage.removeItem('ticto_host'); return;
+    }
+    const code=saved.code;
     function tryResume() {
       if (typeof Peer!=='undefined') { createGame(code); }
       else { setTimeout(tryResume,200); }
