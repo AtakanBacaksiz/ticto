@@ -669,7 +669,7 @@
     // Show conversation prompt as a separate overlay AFTER the result animation settles.
     if (convMsg) {
       clearTimeout(convPromptTimer);
-      convPromptTimer = setTimeout(() => showConversationPrompt(convMsg, net.mode === 'local'), 820);
+      convPromptTimer = setTimeout(() => showConversationPrompt(convMsg, false), 820);
     }
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
     btn.setAttribute('role','button'); btn.setAttribute('aria-label','Play again');
