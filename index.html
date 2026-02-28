@@ -122,14 +122,26 @@
     @keyframes symbolPop { 0%{transform:scale(0.18) rotate(-10deg);opacity:0} 100%{transform:scale(1) rotate(0deg);opacity:1} }
     .result-symbol-svg.x { filter: drop-shadow(0 0 14px var(--x)) drop-shadow(0 0 42px rgba(232,99,90,0.62)); }
     .result-symbol-svg.o { filter: drop-shadow(0 0 14px var(--o)) drop-shadow(0 0 42px rgba(91,158,245,0.62)); }
-    .convo-starter {
-      font-size: clamp(13px,3.8vw,17px); font-weight: 400;
-      color: rgba(255,255,255,0.60); text-align: center;
-      max-width: min(280px,76vw); line-height: 1.48; letter-spacing: 0.01em;
-      opacity: 0; transform: translateY(8px);
-      animation: convoFadeIn 0.42s ease-out 0.72s forwards;
+    /* CONVERSATION PROMPT — floating card, shown separately after result overlay */
+    .conv-prompt-overlay {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      animation: convFadeIn 300ms ease-out both;
     }
-    @keyframes convoFadeIn { to{opacity:1;transform:translateY(0)} }
+    @keyframes convFadeIn { from{opacity:0} to{opacity:1} }
+    .conv-prompt-card {
+      background: rgba(8,10,20,0.96); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 26px; padding: 28px 26px;
+      max-width: min(290px,78vw); text-align: center;
+      font-size: clamp(15px,4.2vw,18px); font-weight: 400;
+      color: rgba(255,255,255,0.82); line-height: 1.52; letter-spacing: 0.01em;
+      box-shadow: 0 16px 56px rgba(0,0,0,0.65);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      animation: convCardPop 380ms cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes convCardPop    { from{transform:scale(0.82)} to{transform:scale(1)} }
+    @keyframes convCardPopRot { from{transform:rotate(180deg) scale(0.82)} to{transform:rotate(180deg) scale(1)} }
+    .conv-prompt-card.rotated { animation: convCardPopRot 380ms cubic-bezier(0.34,1.56,0.64,1) both; }
     .overlay-reset {
       width: 52px; height: 52px; border-radius: 50%;
       border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.06);
@@ -329,85 +341,94 @@
   const WIN_LENGTHS = [272,272,272,272,272,272,DIAG_LEN,DIAG_LEN];
   const CODE_CHARS  = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars, no I/O
 
-  // Result messages — always shown to the OPPONENT (never the creator)
-  // WIN  = creator won  → opponent reads these
-  // DRAW = draw         → opponent reads these
-  // LOSE = creator lost → opponent reads these
-  const MSGS_WIN = [
-    "That was unexpectedly fun 🙂",
-    "You handled that well 👏",
-    "I did not see that coming 😅",
-    "You made that look easy 😌",
-    "I might need practice now 😄",
-    "That move was smooth 👀",
-    "You earned that one ✨",
-    "Coffee might be fair now ☕",
-    "That deserves a small celebration 🎉",
-    "I respect that strategy 🧠",
+  // ════════════════════════════════════════════════════════════
+  // CONVERSATION STARTER POOLS
+  // Always shown to the OPPONENT (never the creator).
+  // WIN  = creator won  →  opponent sees these
+  // DRAW = draw         →  opponent sees these
+  // LOSE = creator lost →  opponent sees these
+  // ════════════════════════════════════════════════════════════
+  const CONV_WIN = [
+    "What made you try this game 🙂",
+    "Are you usually this calm 👀",
+    "Do you play often 😄",
+    "Was that planned or instinct 🤔",
+    "What is your secret strategy 🧠",
+    "Do you prefer thinking or reacting",
+    "Was that lucky timing 😅",
+    "Are you competitive normally",
+    "What kind of games do you like 🎮",
+    "Was that your serious face 😌",
   ];
-  const MSGS_DRAW = [
-    "That felt surprisingly even ⚖️",
-    "We kept it interesting 😄",
-    "Neither of us gave up 👀",
-    "That had good energy ✨",
-    "I like how that played out 🙂",
-    "Same level maybe 🤔",
-    "That could use a round two 🔁",
-    "Balanced and calm 😌",
-    "We make this look easy 😉",
-    "Maybe the tiebreaker needs coffee ☕",
+  const CONV_DRAW = [
+    "Coffee or tea person ☕",
+    "Morning energy or night owl 🌙",
+    "Music while working 🎵",
+    "City walks or quiet cafés 🚶",
+    "Books or podcasts 📚",
+    "Spontaneous or planner 🤔",
+    "Sweet or salty 🍫",
+    "Beach or mountains 🌊",
+    "Early bird or last minute 😄",
+    "Favorite way to relax 🌿",
   ];
-  const MSGS_LOSE = [
-    "Alright you got me 😅",
-    "That was well calculated 👏",
-    "I walked into that one 😄",
-    "You stayed focused 😌",
-    "I underestimated that move 👀",
-    "Fair win honestly 🙂",
-    "I owe you a rematch 🔁",
-    "That might cost me tea 🍵",
-    "You read that perfectly 🧠",
-    "Next time I will be ready 😉",
+  const CONV_LOSE = [
+    "You seem focused — always like that 😉",
+    "What do you do when you win 😄",
+    "Should I be nervous 👀",
+    "You look competitive",
+    "That confidence is natural 😌",
+    "Do you always stay this calm",
+    "I feel like you planned that",
+    "Are you secretly practicing",
+    "I did not expect that move",
+    "Are you this strategic in real life",
   ];
 
   // ════════════════════════════════════════════════════════════
   // NET STATE — declared early so updateBadgeTurn() can read it
   // ════════════════════════════════════════════════════════════
   let net = { mode:'local', peer:null, conn:null, myRole:null, code:null };
+  let convPromptTimer = null; // pending conversation-prompt timeout (cleared on restart)
 
   // ════════════════════════════════════════════════════════════
-  // RESULT MESSAGE HELPERS
+  // CONVERSATION PROMPT HELPERS
   // ════════════════════════════════════════════════════════════
-  // result  : 'X' | 'O' | 'D'
-  // isCreator: true → host/X in online, or X in local (creator never sees message)
-  function getResultMessage(result, isCreator) {
+  // result   : 'X' | 'O' | 'D'
+  // isCreator: true  → host/X in online, or X in local; returns null (no prompt shown)
+  // isCreator: false → opponent; returns a random question from the correct pool
+  function getConversationPrompt(result, isCreator) {
     if (isCreator) return null;
-    const pool = result === 'D' ? MSGS_DRAW
-               : result === 'X' ? MSGS_WIN   // creator (X) won
-               : MSGS_LOSE;                  // creator (X) lost
+    const pool = result === 'D' ? CONV_DRAW
+               : result === 'X' ? CONV_WIN   // creator (X) won  → opponent reads WIN
+               : CONV_LOSE;                  // creator (X) lost → opponent reads LOSE
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Builds and returns an element with auto-dismiss (30 s) and tap-to-close.
-  // Rotation is applied on a wrapper div so it never conflicts with the
-  // convoFadeIn CSS animation (which also animates `transform`).
-  function showResultMessage(message, rotated) {
-    const p = document.createElement('p');
-    p.className = 'convo-starter';
-    p.textContent = message;
-    p.style.cursor = 'pointer';
+  // Mounts a separate floating card over everything.
+  // Auto-dismisses after 5 s; tap anywhere dismisses immediately.
+  // Pass rotated=true in local (pass & play) mode so O player can read it right-side-up.
+  function showConversationPrompt(message, rotated) {
+    const stale = document.querySelector('.conv-prompt-overlay');
+    if (stale) stale.remove();
 
-    const el = rotated ? document.createElement('div') : p;
-    if (rotated) { el.style.transform = 'rotate(180deg)'; el.appendChild(p); }
+    const overlay = document.createElement('div');
+    overlay.className = 'conv-prompt-overlay';
 
-    const dismiss = () => {
-      el.style.transition = 'opacity 400ms ease-out';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 420);
-    };
-    el.addEventListener('click', dismiss);
-    setTimeout(dismiss, 30000);
-    return el;
+    const card = document.createElement('div');
+    card.className = 'conv-prompt-card' + (rotated ? ' rotated' : '');
+    card.textContent = message;
+    overlay.appendChild(card);
+
+    function dismiss() {
+      clearTimeout(selfTimer);
+      overlay.style.transition = 'opacity 300ms ease-out';
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 320);
+    }
+    const selfTimer = setTimeout(dismiss, 5000);
+    overlay.addEventListener('click', dismiss, { once: true });
+    document.body.appendChild(overlay);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -644,8 +665,12 @@
     overlay.appendChild(createMarkSVG(isDraw?'D':winner,true));
     // In local play X = creator; in online the host (myRole==='X') = creator.
     const isCreator = net.mode === 'local' ? false : net.myRole === 'X';
-    const msg = getResultMessage(winner, isCreator);
-    if (msg) overlay.appendChild(showResultMessage(msg, net.mode === 'local'));
+    const convMsg = getConversationPrompt(winner, isCreator);
+    // Show conversation prompt as a separate overlay AFTER the result animation settles.
+    if (convMsg) {
+      clearTimeout(convPromptTimer);
+      convPromptTimer = setTimeout(() => showConversationPrompt(convMsg, net.mode === 'local'), 820);
+    }
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
     btn.setAttribute('role','button'); btn.setAttribute('aria-label','Play again');
     btn.addEventListener('click',()=>restart()); overlay.appendChild(btn);
@@ -672,6 +697,8 @@
       : G.winner==='X' ? 'O'
       : G.winner==='O' ? 'X'
       : G.turn==='X'   ? 'O' : 'X';
+    clearTimeout(convPromptTimer);
+    const cp=document.querySelector('.conv-prompt-overlay'); if(cp) cp.remove();
     G={...G, board:Array(9).fill(null), turn:next, over:false, winner:null, winIdx:-1, placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -836,6 +863,8 @@
   }
 
   function startOnlineGame() {
+    clearTimeout(convPromptTimer);
+    const cp=document.querySelector('.conv-prompt-overlay');if(cp)cp.remove();
     G={board:Array(9).fill(null),turn:'X',scores:G.scores,over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -851,6 +880,8 @@
   }
 
   function leaveOnlineGame() {
+    clearTimeout(convPromptTimer);
+    const cp=document.querySelector('.conv-prompt-overlay');if(cp)cp.remove();
     sessionStorage.removeItem('ticto_host');
     destroyPeer();
     net={mode:'local',peer:null,conn:null,myRole:null,code:null};
