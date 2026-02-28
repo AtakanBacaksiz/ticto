@@ -386,21 +386,26 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Builds and returns a <p> with auto-dismiss (30 s) and tap-to-close.
+  // Builds and returns an element with auto-dismiss (30 s) and tap-to-close.
+  // Rotation is applied on a wrapper div so it never conflicts with the
+  // convoFadeIn CSS animation (which also animates `transform`).
   function showResultMessage(message, rotated) {
     const p = document.createElement('p');
     p.className = 'convo-starter';
     p.textContent = message;
-    if (rotated) p.style.transform = 'rotate(180deg)';
     p.style.cursor = 'pointer';
+
+    const el = rotated ? document.createElement('div') : p;
+    if (rotated) { el.style.transform = 'rotate(180deg)'; el.appendChild(p); }
+
     const dismiss = () => {
-      p.style.transition = 'opacity 400ms ease-out';
-      p.style.opacity = '0';
-      setTimeout(() => p.remove(), 420);
+      el.style.transition = 'opacity 400ms ease-out';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 420);
     };
-    p.addEventListener('click', dismiss);
+    el.addEventListener('click', dismiss);
     setTimeout(dismiss, 30000);
-    return p;
+    return el;
   }
 
   // ════════════════════════════════════════════════════════════
