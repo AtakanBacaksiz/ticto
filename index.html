@@ -886,7 +886,7 @@
   document.getElementById('btn-local').addEventListener('click',()=>{
     net.mode='local'; hideLobby(); updateDots();
   });
-  document.getElementById('btn-create').addEventListener('click', createGame);
+  document.getElementById('btn-create').addEventListener('click', () => createGame());
   document.getElementById('btn-join').addEventListener('click',()=>{
     showLS('ls-join');
     document.getElementById('join-error').classList.add('hidden');
