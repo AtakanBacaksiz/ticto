@@ -327,27 +327,81 @@
   const WIN_LENGTHS = [272,272,272,272,272,272,DIAG_LEN,DIAG_LEN];
   const CODE_CHARS  = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars, no I/O
 
-  const CONVOS_WIN = [
-    "Okay, you're good 👀","Best of three? 🔥","Drinks on you for that one",
-    "I'm not done with you yet","That was illegal and you know it",
-    "Rematch, or we start talking? 😏","I didn't come here to lose to a stranger",
-    "Okay I'm lowkey impressed","Now we have to exchange numbers",
-    "You're trouble, I can tell","I'll allow it. This time.",
-    "So... what else are you good at?","First time meeting and you destroy me",
-    "Don't let it go to your head","Fine. You win. Now talk to me.",
+  // Result messages — always shown to the OPPONENT (never the creator)
+  // WIN  = creator won  → opponent reads these
+  // DRAW = draw         → opponent reads these
+  // LOSE = creator lost → opponent reads these
+  const MSGS_WIN = [
+    "That was unexpectedly fun 🙂",
+    "You handled that well 👏",
+    "I did not see that coming 😅",
+    "You made that look easy 😌",
+    "I might need practice now 😄",
+    "That move was smooth 👀",
+    "You earned that one ✨",
+    "Coffee might be fair now ☕",
+    "That deserves a small celebration 🎉",
+    "I respect that strategy 🧠",
   ];
-  const CONVOS_DRAW = [
-    "A draw... must mean we're equals 🤝","Clearly we need a tiebreaker",
-    "This can only end one way — coffee ☕","Equal minds think alike",
-    "Fate is clearly telling us something","We should probably just talk instead",
-    "Nobody wins, everybody talks","We'd make a good team actually",
-    "The game can't decide this one","A draw feels like destiny honestly",
+  const MSGS_DRAW = [
+    "That felt surprisingly even ⚖️",
+    "We kept it interesting 😄",
+    "Neither of us gave up 👀",
+    "That had good energy ✨",
+    "I like how that played out 🙂",
+    "Same level maybe 🤔",
+    "That could use a round two 🔁",
+    "Balanced and calm 😌",
+    "We make this look easy 😉",
+    "Maybe the tiebreaker needs coffee ☕",
+  ];
+  const MSGS_LOSE = [
+    "Alright you got me 😅",
+    "That was well calculated 👏",
+    "I walked into that one 😄",
+    "You stayed focused 😌",
+    "I underestimated that move 👀",
+    "Fair win honestly 🙂",
+    "I owe you a rematch 🔁",
+    "That might cost me tea 🍵",
+    "You read that perfectly 🧠",
+    "Next time I will be ready 😉",
   ];
 
   // ════════════════════════════════════════════════════════════
   // NET STATE — declared early so updateBadgeTurn() can read it
   // ════════════════════════════════════════════════════════════
   let net = { mode:'local', peer:null, conn:null, myRole:null, code:null };
+
+  // ════════════════════════════════════════════════════════════
+  // RESULT MESSAGE HELPERS
+  // ════════════════════════════════════════════════════════════
+  // result  : 'X' | 'O' | 'D'
+  // isCreator: true → host/X in online, or X in local (creator never sees message)
+  function getResultMessage(result, isCreator) {
+    if (isCreator) return null;
+    const pool = result === 'D' ? MSGS_DRAW
+               : result === 'X' ? MSGS_WIN   // creator (X) won
+               : MSGS_LOSE;                  // creator (X) lost
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Builds and returns a <p> with auto-dismiss (30 s) and tap-to-close.
+  function showResultMessage(message, rotated) {
+    const p = document.createElement('p');
+    p.className = 'convo-starter';
+    p.textContent = message;
+    if (rotated) p.style.transform = 'rotate(180deg)';
+    p.style.cursor = 'pointer';
+    const dismiss = () => {
+      p.style.transition = 'opacity 400ms ease-out';
+      p.style.opacity = '0';
+      setTimeout(() => p.remove(), 420);
+    };
+    p.addEventListener('click', dismiss);
+    setTimeout(dismiss, 30000);
+    return p;
+  }
 
   // ════════════════════════════════════════════════════════════
   // AUDIO
@@ -552,9 +606,10 @@
       }
     }
     overlay.appendChild(createMarkSVG(isDraw?'D':winner,true));
-    const convo=document.createElement('p'); convo.className='convo-starter';
-    convo.textContent=(isDraw?CONVOS_DRAW:CONVOS_WIN)[Math.floor(Math.random()*(isDraw?CONVOS_DRAW:CONVOS_WIN).length)];
-    overlay.appendChild(convo);
+    // In local play X = creator; in online the host (myRole==='X') = creator.
+    const isCreator = net.mode === 'local' ? false : net.myRole === 'X';
+    const msg = getResultMessage(winner, isCreator);
+    if (msg) overlay.appendChild(showResultMessage(msg, net.mode === 'local'));
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
     btn.setAttribute('role','button'); btn.setAttribute('aria-label','Play again');
     btn.addEventListener('click',()=>restart()); overlay.appendChild(btn);
