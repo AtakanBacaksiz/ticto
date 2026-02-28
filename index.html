@@ -452,7 +452,7 @@
           </div>
         </div>
       </div>
-      <span class="score-total" id="score-total">to 5</span>
+      <span class="score-total" id="score-total">5 games</span>
       <div class="score-side score-side-right">
         <span class="score-player x-player">X</span>
         <div class="score-record">
@@ -827,17 +827,26 @@
       }
     }
     overlay.appendChild(createMarkSVG(isDraw?'D':winner,true));
-    const seriesWon = !isDraw && G.scores[winner] >= SERIES_TARGET;
-    if (seriesWon) {
+    const totalGames = G.scores.X + G.scores.O + G.scores.D;
+    const seriesOver = totalGames >= SERIES_TARGET;
+    if (seriesOver) {
       clearTimeout(convPromptTimer);
       const banner = document.createElement('div');
       banner.className = 'series-banner';
       const winLabel = document.createElement('span');
       winLabel.className = 'series-winner-txt';
-      winLabel.textContent = winner + ' wins the series';
       const scoreLabel = document.createElement('span');
       scoreLabel.className = 'series-score';
-      scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
+      if (G.scores.X > G.scores.O) {
+        winLabel.textContent = 'X wins the series';
+        scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
+      } else if (G.scores.O > G.scores.X) {
+        winLabel.textContent = 'O wins the series';
+        scoreLabel.textContent = G.scores.O + ' – ' + G.scores.X;
+      } else {
+        winLabel.textContent = 'series tied';
+        scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
+      }
       banner.appendChild(winLabel);
       banner.appendChild(scoreLabel);
       overlay.appendChild(banner);
@@ -852,8 +861,8 @@
       }
     }
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
-    btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesWon ? 'New series' : 'Play again');
-    btn.addEventListener('click', () => seriesWon ? resetSeries() : restart()); overlay.appendChild(btn);
+    btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesOver ? 'New series' : 'Play again');
+    btn.addEventListener('click', () => seriesOver ? resetSeries() : restart()); overlay.appendChild(btn);
     document.body.appendChild(overlay);
     if(!isDraw) setTimeout(()=>createBurstParticles(overlay,color),120);
   }
@@ -874,7 +883,7 @@
 
   function updateScoreBar() {
     const xW = G.scores.X, oW = G.scores.O;
-    const total = xW + oW;
+    const played = xW + oW + G.scores.D;
     function bump(el, val) {
       const v = String(val);
       if (el.textContent !== v) {
@@ -888,7 +897,8 @@
     bump(document.getElementById('sc-o-l'), xW);
     bump(document.getElementById('sc-x-w'), xW);
     bump(document.getElementById('sc-x-l'), oW);
-    document.getElementById('score-total').textContent = 'to ' + SERIES_TARGET;
+    document.getElementById('score-total').textContent =
+      played === 0 ? SERIES_TARGET + ' games' : played + '/' + SERIES_TARGET;
   }
 
   // ════════════════════════════════════════════════════════════
