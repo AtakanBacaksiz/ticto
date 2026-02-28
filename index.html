@@ -267,7 +267,7 @@
         maxlength="4" placeholder="ABCD"
         autocomplete="off" autocorrect="off"
         autocapitalize="characters" spellcheck="false" />
-      <div class="join-error hidden" id="join-error">room not found 🤔</div>
+      <div class="join-error hidden" id="join-error">couldn't connect — check the code or ask for a new link</div>
       <button class="lbtn primary" id="btn-connect">connect</button>
       <button class="lbtn-text" id="btn-cancel-join">back</button>
     </div>
@@ -600,6 +600,20 @@
   // ════════════════════════════════════════════════════════════
   // ONLINE / PEERJS
   // ════════════════════════════════════════════════════════════
+  const PEER_CONFIG = {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80',    username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443',   username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+      ]
+    }
+  };
+
   function genCode() {
     return Array.from({length:4},()=>CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]).join('');
   }
@@ -640,14 +654,18 @@
     document.getElementById('copy-hint').classList.remove('copied');
     showLS('ls-waiting');
     destroyPeer();
-    net.peer=new Peer('ticto-'+code);
+    net.peer=new Peer('ticto-'+code, PEER_CONFIG);
     net.peer.on('error',err=>{
       if(err.type==='unavailable-id'){net.peer.destroy();createGame();}
       else{showLS('ls-home');showLobbyErr('Could not create room. Check connection.');}
     });
     net.peer.on('connection',conn=>{
       if(net.conn){conn.close();return;}
-      net.conn=conn; setupConn();
+      net.conn=conn;
+      conn.on('open', onConnOpen);
+      conn.on('data', onConnData);
+      conn.on('close', onConnClose);
+      conn.on('error', onConnClose);
     });
   }
 
@@ -662,30 +680,26 @@
     document.getElementById('join-error').classList.add('hidden');
     showLS('ls-connecting');
     destroyPeer();
-    net.peer=new Peer();
+    net.peer=new Peer(undefined, PEER_CONFIG);
     net.peer.on('error',()=>showJoinErr());
     net.peer.on('open',()=>{
       const conn=net.peer.connect('ticto-'+code,{reliable:true});
       net.conn=conn;
-      const timeout=setTimeout(()=>{if(!net.conn||!net.conn.open)showJoinErr();},10000);
-      conn.on('open',()=>clearTimeout(timeout));
-      conn.on('error',()=>{clearTimeout(timeout);showJoinErr();});
-      setupConn();
+      let joined=false;
+      const timeout=setTimeout(()=>{ if(!joined) showJoinErr(); },30000);
+      conn.on('open',()=>{ joined=true; clearTimeout(timeout); onConnOpen(); });
+      conn.on('data', onConnData);
+      conn.on('close', onConnClose);
+      conn.on('error',()=>{ clearTimeout(timeout); if(!joined) showJoinErr(); });
     });
   }
 
   function showJoinErr() {
+    destroyPeer();
+    net={mode:'local',peer:null,conn:null,myRole:null,code:null};
     showLS('ls-join');
     document.getElementById('join-error').classList.remove('hidden');
-    const inp=document.getElementById('code-input'); inp.value='';
-    setTimeout(()=>inp.focus(),80);
-  }
-
-  function setupConn() {
-    net.conn.on('open', onConnOpen);
-    net.conn.on('data', onConnData);
-    net.conn.on('close',onConnClose);
-    net.conn.on('error',onConnClose);
+    setTimeout(()=>document.getElementById('code-input').focus(),80);
   }
 
   function onConnOpen() { hideLobby(); startOnlineGame(); }
