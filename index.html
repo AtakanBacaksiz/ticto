@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>tic.</title>
+  <title>TIC.TAC.TOE</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
 
   <style>
@@ -17,32 +17,42 @@
     body {
       background: #060810;
       background-image:
-        radial-gradient(ellipse 55% 40% at 25% 50%, rgba(91,158,245,0.055) 0%, transparent 70%),
-        radial-gradient(ellipse 45% 40% at 75% 50%, rgba(232,99,90,0.055) 0%, transparent 70%);
+        radial-gradient(ellipse 55% 40% at 25% 50%, rgba(91,158,245,0.09) 0%, transparent 70%),
+        radial-gradient(ellipse 45% 40% at 75% 50%, rgba(232,99,90,0.09) 0%, transparent 70%);
       display: flex; flex-direction: column; align-items: center;
       justify-content: space-between;
       padding: max(env(safe-area-inset-top,0px),30px) 20px max(env(safe-area-inset-bottom,0px),30px);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none; z-index: 9999;
     }
 
     /* TURN DOTS */
     .turn-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      width: 8px; height: 12px; border-radius: 2px; flex-shrink: 0;
       transition: opacity 160ms ease-out, box-shadow 160ms ease-out, transform 160ms ease-out;
     }
     .turn-dot.top    { background: var(--o); opacity: 0.18; }
     .turn-dot.bottom { background: var(--x); opacity: 0.18; }
     .turn-dot.top.active {
       opacity: 1;
-      box-shadow: 0 0 8px var(--o), 0 0 22px var(--o), 0 0 44px rgba(91,158,245,0.35);
-      animation: dotPulse 1.6s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--o), 0 0 14px rgba(91,158,245,0.50);
+      animation: dotPulse 1.0s steps(1,end) infinite;
     }
     .turn-dot.bottom.active {
       opacity: 1;
-      box-shadow: 0 0 8px var(--x), 0 0 22px var(--x), 0 0 44px rgba(232,99,90,0.35);
-      animation: dotPulse 1.6s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--x), 0 0 14px rgba(232,99,90,0.50);
+      animation: dotPulse 1.0s steps(1,end) infinite;
     }
-    @keyframes dotPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.35)} }
+    @keyframes dotPulse { 0%,49%{opacity:1} 50%,100%{opacity:0.15} }
 
     /* GAME AREA */
     .game-area { display: flex; flex-direction: column; align-items: center; gap: 28px; }
@@ -53,7 +63,7 @@
     .cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); }
     .cell {
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; position: relative; border-radius: 8px; transition: background 80ms;
+      cursor: pointer; position: relative; border-radius: 2px; transition: background 80ms;
     }
     .cell:active:not(.filled) { background: rgba(255,255,255,0.05); }
     .cell.win-cell { animation: winCellFlash 0.45s ease-out forwards; }
@@ -62,15 +72,12 @@
     /* SVG MARKS */
     .mark-svg { width: 74%; aspect-ratio: 1; overflow: visible; animation: markBounce 170ms cubic-bezier(0.34,1.56,0.64,1) forwards; }
     @keyframes markBounce { 0%{transform:scale(0);opacity:0.6} 55%{transform:scale(1.16);opacity:1} 80%{transform:scale(0.96)} 100%{transform:scale(1)} }
-    .mark-svg line, .result-symbol-svg line { stroke-linecap: round; stroke-linejoin: round; }
+    .mark-svg line, .result-symbol-svg line { stroke-linecap: square; stroke-linejoin: miter; }
     .mark-svg circle, .result-symbol-svg circle { fill: none; }
-    .mark-svg.x line, .result-symbol-svg.x line   { stroke: var(--x); stroke-width: 8; stroke-linecap: round; }
-    .mark-svg.o circle, .result-symbol-svg.o circle { stroke: var(--o); stroke-width: 8; }
-    .mark-svg.draw line, .result-symbol-svg.draw line { stroke: rgba(255,255,255,0.30); stroke-width: 8; stroke-linecap: round; }
-    .mark-svg.x { filter: drop-shadow(0 0 6px rgba(232,99,90,0.95)) drop-shadow(0 0 18px rgba(232,99,90,0.45)); }
-    .mark-svg.o { filter: drop-shadow(0 0 6px rgba(91,158,245,0.95)) drop-shadow(0 0 18px rgba(91,158,245,0.45)); }
-    .mark-svg.glow-x { filter: drop-shadow(0 0 10px var(--x)) drop-shadow(0 0 28px var(--x)) drop-shadow(0 0 50px rgba(232,99,90,0.52)); }
-    .mark-svg.glow-o { filter: drop-shadow(0 0 10px var(--o)) drop-shadow(0 0 28px var(--o)) drop-shadow(0 0 50px rgba(91,158,245,0.52)); }
+    .mark-svg.x { filter: none; }
+    .mark-svg.o { filter: none; }
+    .mark-svg.glow-x { filter: brightness(1.3) saturate(1.5); }
+    .mark-svg.glow-o { filter: brightness(1.3) saturate(1.5); }
     @keyframes drawXLine  { to { stroke-dashoffset: 0; } }
     @keyframes drawCircle { to { stroke-dashoffset: 0; } }
     .mark-svg.mark-oldest { opacity: 0.26; filter: none !important; animation: markBounce 170ms cubic-bezier(0.34,1.56,0.64,1) forwards, oldestPulse 1.8s ease-in-out 0.17s infinite; }
@@ -78,19 +85,19 @@
 
     /* WIN LINE */
     .win-line {
-      fill: none; stroke-linecap: round; stroke-width: 6.5;
-      stroke-dasharray: var(--dash-len,400); stroke-dashoffset: var(--dash-len,400);
+      fill: none; stroke-linecap: square; stroke-width: 5;
+      stroke-dasharray: 12 7; stroke-dashoffset: var(--dash-len,400);
       transition: stroke-dashoffset 330ms cubic-bezier(0.4,0,0.2,1);
     }
     .win-line.drawn { stroke-dashoffset: 0; }
 
     /* RESET BUTTON */
     .reset-btn {
-      width: 40px; height: 40px; border-radius: 50%;
+      width: 40px; height: 40px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.14); background: transparent;
       color: rgba(255,255,255,0.20); font-size: 18px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 150ms ease-out;
+      cursor: pointer; transition: all 80ms ease-out;
     }
     .reset-btn:hover { color: rgba(255,255,255,0.55); border-color: rgba(255,255,255,0.36); background: rgba(255,255,255,0.05); }
     .reset-btn:active { transform: scale(0.92) rotate(-30deg); }
@@ -120,8 +127,8 @@
       animation: symbolPop 360ms cubic-bezier(0.34,1.56,0.64,1) forwards;
     }
     @keyframes symbolPop { 0%{transform:scale(0.18) rotate(-10deg);opacity:0} 100%{transform:scale(1) rotate(0deg);opacity:1} }
-    .result-symbol-svg.x { filter: drop-shadow(0 0 14px var(--x)) drop-shadow(0 0 42px rgba(232,99,90,0.62)); }
-    .result-symbol-svg.o { filter: drop-shadow(0 0 14px var(--o)) drop-shadow(0 0 42px rgba(91,158,245,0.62)); }
+    .result-symbol-svg.x { filter: none; }
+    .result-symbol-svg.o { filter: none; }
     /* CONVERSATION PROMPT — floating card, shown separately after result overlay */
     .conv-prompt-overlay {
       position: fixed; inset: 0; z-index: 20;
@@ -131,7 +138,7 @@
     @keyframes convFadeIn { from{opacity:0} to{opacity:1} }
     .conv-prompt-card {
       background: rgba(8,10,20,0.96); border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 26px; padding: 28px 26px;
+      border-radius: 4px; padding: 28px 26px;
       max-width: min(290px,78vw); text-align: center;
       font-size: clamp(15px,4.2vw,18px); font-weight: 400;
       color: rgba(255,255,255,0.82); line-height: 1.52; letter-spacing: 0.01em;
@@ -143,11 +150,11 @@
     @keyframes convCardPopRot { from{transform:rotate(180deg) scale(0.82)} to{transform:rotate(180deg) scale(1)} }
     .conv-prompt-card.rotated { animation: convCardPopRot 380ms cubic-bezier(0.34,1.56,0.64,1) both; }
     .overlay-reset {
-      width: 52px; height: 52px; border-radius: 50%;
+      width: 52px; height: 52px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.06);
       color: rgba(255,255,255,0.50); font-size: 24px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 150ms ease-out;
+      cursor: pointer; transition: all 80ms ease-out;
     }
     .overlay-reset:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.50); color: rgba(255,255,255,0.90); }
     .overlay-reset:active { transform: scale(0.92) rotate(-30deg); }
@@ -177,10 +184,10 @@
     .lobby-tagline { font-size: clamp(10px,2.8vw,13px); color: rgba(255,255,255,0.25); letter-spacing: 0.20em; text-transform: uppercase; margin-bottom: 48px; }
     .lobby-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
     .lbtn {
-      padding: 13px 24px; border-radius: 50px;
+      padding: 13px 24px; border-radius: 3px;
       border: 1.5px solid rgba(255,255,255,0.13); background: rgba(255,255,255,0.05);
       color: rgba(255,255,255,0.72); font-size: 15px; font-weight: 500; font-family: inherit;
-      cursor: pointer; letter-spacing: 0.01em; transition: all 140ms ease-out;
+      cursor: pointer; letter-spacing: 0.04em; transition: all 80ms ease-out;
     }
     .lbtn:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.26); color: white; }
     .lbtn:active { transform: scale(0.97); }
@@ -233,7 +240,7 @@
       position: fixed; top: max(env(safe-area-inset-top,0px),14px); right: 16px;
       display: flex; align-items: center; gap: 6px;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 50px; padding: 5px 10px 5px 9px;
+      border-radius: 3px; padding: 5px 10px 5px 9px;
       z-index: 20; white-space: nowrap; font-size: 11px;
       letter-spacing: 0.03em; color: rgba(255,255,255,0.45);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -336,13 +343,13 @@
     .chat-input-row.hidden { display: none; }
     .chat-text-input {
       flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 20px; padding: 9px 16px; color: white; font-size: 14px; font-family: inherit;
+      border-radius: 3px; padding: 9px 16px; color: white; font-size: 14px; font-family: inherit;
       outline: none; caret-color: var(--o); transition: border-color 150ms;
     }
     .chat-text-input:focus { border-color: rgba(255,255,255,0.22); }
     .chat-text-input::placeholder { color: rgba(255,255,255,0.20); }
     .chat-send-btn {
-      width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; border: none;
+      width: 36px; height: 36px; flex-shrink: 0; border-radius: 3px; border: none;
       background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.55);
       font-size: 15px; cursor: pointer; transition: all 130ms;
       display: flex; align-items: center; justify-content: center;
@@ -419,10 +426,10 @@
   <div class="game-area">
     <div class="board" id="board">
       <svg class="grid-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <line x1="16" y1="100" x2="284" y2="100" stroke="rgba(255,255,255,0.68)" stroke-width="4.5" stroke-linecap="round"/>
-        <line x1="16" y1="200" x2="284" y2="200" stroke="rgba(255,255,255,0.68)" stroke-width="4.5" stroke-linecap="round"/>
-        <line x1="100" y1="16" x2="100" y2="284" stroke="rgba(255,255,255,0.68)" stroke-width="4.5" stroke-linecap="round"/>
-        <line x1="200" y1="16" x2="200" y2="284" stroke="rgba(255,255,255,0.68)" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="16" y1="100" x2="284" y2="100" stroke="rgba(255,255,255,0.55)" stroke-width="4" stroke-linecap="square" stroke-dasharray="8 5"/>
+        <line x1="16" y1="200" x2="284" y2="200" stroke="rgba(255,255,255,0.55)" stroke-width="4" stroke-linecap="square" stroke-dasharray="8 5"/>
+        <line x1="100" y1="16" x2="100" y2="284" stroke="rgba(255,255,255,0.55)" stroke-width="4" stroke-linecap="square" stroke-dasharray="8 5"/>
+        <line x1="200" y1="16" x2="200" y2="284" stroke="rgba(255,255,255,0.55)" stroke-width="4" stroke-linecap="square" stroke-dasharray="8 5"/>
       </svg>
       <svg class="win-svg" id="win-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <line class="win-line" id="win-line" x1="0" y1="0" x2="0" y2="0"/>
@@ -438,7 +445,7 @@
     <button class="reset-btn" id="reset-btn" aria-label="New game">↺</button>
     <div class="score-bar" id="score-bar">
       <div class="score-side">
-        <span class="score-player o-player">O</span>
+        <span class="score-player o-player">[O]</span>
         <div class="score-record">
           <div class="score-nums">
             <span class="sc-n" id="sc-o-w">0</span>
@@ -454,7 +461,7 @@
       </div>
       <span class="score-total" id="score-total">5 games</span>
       <div class="score-side score-side-right">
-        <span class="score-player x-player">X</span>
+        <span class="score-player x-player">[X]</span>
         <div class="score-record">
           <div class="score-nums">
             <span class="sc-n" id="sc-x-l">0</span>
@@ -606,46 +613,67 @@
   function sfxTap(player) {
     try {
       const ctx=getAudioCtx(), t=ctx.currentTime;
+      // Main chip tone — square wave chirp
       const osc=ctx.createOscillator(), g=ctx.createGain();
-      osc.connect(g); g.connect(ctx.destination);
-      const f0=player==='X'?980:660; osc.type='sine';
-      osc.frequency.setValueAtTime(f0,t);
-      osc.frequency.exponentialRampToValueAtTime(f0*0.22,t+0.045);
-      g.gain.setValueAtTime(0.22,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.065);
-      osc.start(t); osc.stop(t+0.07);
+      osc.connect(g); g.connect(ctx.destination); osc.type='square';
+      if (player==='X') {
+        osc.frequency.setValueAtTime(440,t);
+        osc.frequency.exponentialRampToValueAtTime(880,t+0.04);
+      } else {
+        osc.frequency.setValueAtTime(660,t);
+        osc.frequency.exponentialRampToValueAtTime(330,t+0.04);
+      }
+      g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.18,t+0.004);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.075);
+      osc.start(t); osc.stop(t+0.08);
+      // Brief sawtooth thud for texture
       const osc2=ctx.createOscillator(), g2=ctx.createGain();
-      osc2.connect(g2); g2.connect(ctx.destination); osc2.type='sine';
-      osc2.frequency.setValueAtTime(130,t); osc2.frequency.exponentialRampToValueAtTime(55,t+0.05);
-      g2.gain.setValueAtTime(0.28,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.07);
-      osc2.start(t); osc2.stop(t+0.08);
+      osc2.connect(g2); g2.connect(ctx.destination); osc2.type='sawtooth';
+      osc2.frequency.setValueAtTime(player==='X'?120:90,t);
+      g2.gain.setValueAtTime(0.0001,t); g2.gain.linearRampToValueAtTime(0.10,t+0.003);
+      g2.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+      osc2.start(t); osc2.stop(t+0.06);
     } catch(e){}
   }
   function sfxWin(winner) {
     try {
       const ctx=getAudioCtx();
       const notes=winner==='X'?[523,659,784,1047]:[440,554,659,880];
+      // Staccato ascending chip arpeggio
       notes.forEach((freq,i)=>{
-        const t=ctx.currentTime+i*0.11;
+        const t=ctx.currentTime+i*0.13;
         const osc=ctx.createOscillator(), g=ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination); osc.type='sine';
+        osc.connect(g); g.connect(ctx.destination); osc.type='square';
         osc.frequency.setValueAtTime(freq,t);
-        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.14,t+0.014);
-        g.gain.exponentialRampToValueAtTime(0.001,t+0.38);
-        osc.start(t); osc.stop(t+0.42);
+        g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12,t+0.005);
+        g.gain.setValueAtTime(0.12,t+0.07); g.gain.exponentialRampToValueAtTime(0.001,t+0.10);
+        osc.start(t); osc.stop(t+0.11);
+      });
+      // Final triumphant chord (root + fifth)
+      const tChord=ctx.currentTime+notes.length*0.13+0.04;
+      (winner==='X'?[523,784]:[440,659]).forEach(freq=>{
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination); osc.type='square';
+        osc.frequency.setValueAtTime(freq,tChord);
+        g.gain.setValueAtTime(0.0001,tChord); g.gain.linearRampToValueAtTime(0.09,tChord+0.006);
+        g.gain.setValueAtTime(0.09,tChord+0.12); g.gain.exponentialRampToValueAtTime(0.001,tChord+0.22);
+        osc.start(tChord); osc.stop(tChord+0.24);
       });
     } catch(e){}
   }
   function sfxDraw() {
     try {
       const ctx=getAudioCtx();
-      [523,415].forEach((freq,i)=>{
-        const t=ctx.currentTime+i*0.22;
+      // Descending two-tone "wah-wah" — classic chip game-over sound
+      [{f:440,d:0},{f:370,d:0.18}].forEach(({f,d})=>{
+        const t=ctx.currentTime+d;
         const osc=ctx.createOscillator(), g=ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination); osc.type='sine';
-        osc.frequency.setValueAtTime(freq,t);
-        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.10,t+0.018);
-        g.gain.exponentialRampToValueAtTime(0.001,t+0.30);
-        osc.start(t); osc.stop(t+0.34);
+        osc.connect(g); g.connect(ctx.destination); osc.type='square';
+        osc.frequency.setValueAtTime(f,t);
+        osc.frequency.exponentialRampToValueAtTime(f*0.84,t+0.14);
+        g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.10,t+0.006);
+        g.gain.setValueAtTime(0.10,t+0.10); g.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+        osc.start(t); osc.stop(t+0.24);
       });
     } catch(e){}
   }
@@ -720,23 +748,50 @@
     svg.setAttribute('viewBox','0 0 100 100');
     const cls=player==='D'?'draw':player.toLowerCase();
     svg.classList.add(large?'result-symbol-svg':'mark-svg',cls);
+
+    // Two-layer stroke: outer (thick, dim) + inner (thin, bright) for neon-core inner glow
+    function makeLine(x1,y1,x2,y2,outerCol,innerCol,dash,fullLen,animDelay) {
+      // Outer thick stroke
+      const lo=document.createElementNS(ns,'line');
+      lo.setAttribute('x1',x1);lo.setAttribute('y1',y1);lo.setAttribute('x2',x2);lo.setAttribute('y2',y2);
+      lo.setAttribute('stroke-dasharray',dash);lo.setAttribute('stroke-linecap','square');
+      lo.style.stroke=outerCol; lo.style.strokeWidth='8px';
+      if(large){lo.style.strokeDashoffset=fullLen;lo.style.animation=`drawXLine 0.28s ease-out ${animDelay}s forwards`;}
+      // Inner bright highlight stroke
+      const li=document.createElementNS(ns,'line');
+      li.setAttribute('x1',x1);li.setAttribute('y1',y1);li.setAttribute('x2',x2);li.setAttribute('y2',y2);
+      li.setAttribute('stroke-dasharray',dash);li.setAttribute('stroke-linecap','square');
+      li.style.stroke=innerCol; li.style.strokeWidth='3px';
+      if(large){li.style.strokeDashoffset=fullLen;li.style.animation=`drawXLine 0.28s ease-out ${animDelay}s forwards`;}
+      svg.appendChild(lo); svg.appendChild(li);
+    }
+    function makeCircle(outerCol,innerCol,dash,fullLen) {
+      // Outer thick stroke
+      const co=document.createElementNS(ns,'circle');
+      co.setAttribute('cx','50');co.setAttribute('cy','50');co.setAttribute('r','34');
+      co.setAttribute('fill','none');co.setAttribute('stroke-dasharray',dash);
+      co.style.stroke=outerCol; co.style.strokeWidth='8px';
+      if(large){co.style.strokeDashoffset=fullLen;co.style.animation='drawCircle 0.52s cubic-bezier(0.4,0,0.2,1) 0.08s forwards';}
+      // Inner bright highlight stroke
+      const ci=document.createElementNS(ns,'circle');
+      ci.setAttribute('cx','50');ci.setAttribute('cy','50');ci.setAttribute('r','34');
+      ci.setAttribute('fill','none');ci.setAttribute('stroke-dasharray',dash);
+      ci.style.stroke=innerCol; ci.style.strokeWidth='3px';
+      if(large){ci.style.strokeDashoffset=fullLen;ci.style.animation='drawCircle 0.52s cubic-bezier(0.4,0,0.2,1) 0.08s forwards';}
+      svg.appendChild(co); svg.appendChild(ci);
+    }
+
     if (player==='X') {
+      const outerCol='rgba(232,99,90,0.75)', innerCol='rgba(255,210,208,0.95)', dash='6 4', len=88;
       [['19','19','81','81'],['81','19','19','81']].forEach(([x1,y1,x2,y2],i)=>{
-        const l=document.createElementNS(ns,'line');
-        l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
-        if (large){l.style.strokeDasharray='88';l.style.strokeDashoffset='88';l.style.animation=`drawXLine 0.28s ease-out ${i*0.22+0.08}s forwards`;}
-        svg.appendChild(l);
+        makeLine(x1,y1,x2,y2,outerCol,innerCol,dash,len,i*0.22+0.08);
       });
     } else if (player==='O') {
-      const c=document.createElementNS(ns,'circle');
-      c.setAttribute('cx','50');c.setAttribute('cy','50');c.setAttribute('r','34');
-      if (large){c.style.strokeDasharray='214';c.style.strokeDashoffset='214';c.style.animation='drawCircle 0.52s cubic-bezier(0.4,0,0.2,1) 0.08s forwards';}
-      svg.appendChild(c);
+      makeCircle('rgba(91,158,245,0.75)','rgba(200,225,255,0.95)','10 6',214);
     } else {
+      const outerCol='rgba(255,255,255,0.20)', innerCol='rgba(255,255,255,0.55)', dash='6 4', len=64;
       [['18','38','82','38'],['18','62','82','62']].forEach(([x1,y1,x2,y2])=>{
-        const l=document.createElementNS(ns,'line');
-        l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
-        svg.appendChild(l);
+        makeLine(x1,y1,x2,y2,outerCol,innerCol,dash,len,0.08);
       });
     }
     return svg;
@@ -784,8 +839,8 @@
     winLine.setAttribute('x2',c.x2);winLine.setAttribute('y2',c.y2);
     winLine.setAttribute('stroke',color);
     winLine.style.setProperty('--dash-len',len);
-    winLine.style.strokeDasharray=len; winLine.style.strokeDashoffset=len;
-    winSvg.style.filter=`drop-shadow(0 0 5px ${color}) drop-shadow(0 0 14px ${color})`;
+    winLine.style.strokeDasharray='12 7'; winLine.style.strokeDashoffset=len;
+    winSvg.style.filter='';
     requestAnimationFrame(()=>requestAnimationFrame(()=>winLine.classList.add('drawn')));
   }
 
