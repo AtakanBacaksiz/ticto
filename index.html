@@ -1204,6 +1204,10 @@
     net.peer=new Peer('ticto-'+code, PEER_CONFIG);
     net.peer.on('error',err=>{
       console.error('[ticto] host peer error:', err.type, err);
+      // Signaling-server blips don't affect an already-open DataChannel.
+      // Only act if we're still in the lobby (no live game connection).
+      const isSignalingErr = ['network','server-error','socket-error','socket-closed'].includes(err.type);
+      if (isSignalingErr && net.conn && net.conn.open) return;
       net.peer.destroy();
       if (err.type==='unavailable-id') {
         // Server may still hold the old ID for a few seconds after an app-switch.
@@ -1213,7 +1217,7 @@
         } else {
           createGame(); // give up on this code, get a fresh one
         }
-      } else if (['network','server-error','socket-error','socket-closed'].includes(err.type) && retries < 3) {
+      } else if (isSignalingErr && retries < 3) {
         // Transient signalling-server errors — retry automatically.
         setTimeout(()=>createGame(existingCode||code, retries+1), 1500*(retries+1));
       } else {
@@ -1244,19 +1248,20 @@
     showLS('ls-connecting');
     destroyPeer();
     net.peer=new Peer(undefined, PEER_CONFIG);
-    let peerOpened=false;
+    let peerOpened=false, gameJoined=false;
     const peerTimeout=setTimeout(()=>{ if(!peerOpened) showJoinErr(); },15000);
-    net.peer.on('error',()=>{ clearTimeout(peerTimeout); showJoinErr(); });
+    // Only boot to error screen if game hasn't started yet — once the DataChannel
+    // is open it works independently of the signaling server.
+    net.peer.on('error',()=>{ clearTimeout(peerTimeout); if(!gameJoined) showJoinErr(); });
     net.peer.on('open',()=>{
       peerOpened=true; clearTimeout(peerTimeout);
       const conn=net.peer.connect('ticto-'+code,{reliable:true});
       net.conn=conn;
-      let joined=false;
-      const timeout=setTimeout(()=>{ if(!joined) showJoinErr(); },30000);
-      conn.on('open',()=>{ joined=true; clearTimeout(timeout); onConnOpen(); });
+      const timeout=setTimeout(()=>{ if(!gameJoined) showJoinErr(); },30000);
+      conn.on('open',()=>{ gameJoined=true; clearTimeout(timeout); onConnOpen(); });
       conn.on('data', onConnData);
       conn.on('close', onConnClose);
-      conn.on('error',()=>{ clearTimeout(timeout); if(!joined) showJoinErr(); });
+      conn.on('error',()=>{ clearTimeout(timeout); if(!gameJoined) showJoinErr(); });
     });
   }
 
