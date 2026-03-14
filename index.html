@@ -249,6 +249,8 @@
     .badge-conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,0.20); transition: background 300ms, box-shadow 300ms; }
     .badge-conn-dot.connected { background: #4ADE80; box-shadow: 0 0 5px rgba(74,222,128,0.55); }
     .badge-conn-dot.disconnected { background: var(--x); }
+    .badge-conn-dot.reconnecting { background: #FACC15; box-shadow: 0 0 5px rgba(250,204,21,0.6); animation: reconnBlink 0.9s ease-in-out infinite; }
+    @keyframes reconnBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
     #badge-role { font-weight: 600; letter-spacing: 0.02em; }
     .badge-sep { color: rgba(255,255,255,0.18); font-size: 10px; }
     #badge-turn { font-size: 10px; color: rgba(255,255,255,0.35); }
@@ -558,7 +560,7 @@
   // ════════════════════════════════════════════════════════════
   // NET STATE — declared early so updateBadgeTurn() can read it
   // ════════════════════════════════════════════════════════════
-  let net = { mode:'local', peer:null, conn:null, myRole:null, code:null };
+  let net = { mode:'local', peer:null, conn:null, myRole:null, code:null, reconnecting:false };
   let convPromptTimer = null; // pending conversation-prompt timeout (cleared on restart)
 
   // ════════════════════════════════════════════════════════════
@@ -1044,6 +1046,95 @@
   updateScoreBar(); // ← init
 
   // ════════════════════════════════════════════════════════════
+  // HEARTBEAT + RECONNECT HELPERS
+  // ════════════════════════════════════════════════════════════
+  let pingInterval = null, pingMissed = 0;
+  function startPing() {
+    clearInterval(pingInterval); pingMissed = 0;
+    pingInterval = setInterval(() => {
+      if (!net.conn || !net.conn.open) return;
+      pingMissed++;
+      if (pingMissed > 3) { handleConnLost(); return; }
+      sendNet({ type: 'ping' });
+    }, 5000);
+  }
+  function stopPing() { clearInterval(pingInterval); pingInterval = null; pingMissed = 0; }
+
+  function handleConnLost() {
+    stopPing();
+    if (net.mode === 'local') return;
+    if (net.reconnecting) return;
+    net.reconnecting = true;
+    try { if (net.conn) net.conn.close(); } catch(e) {}
+    net.conn = null;
+    updateBadge('reconnecting');
+    if (net.mode === 'guest') setTimeout(attemptGuestReconnect, 2000);
+    // Host just waits — its peer stays alive and the guest will reconnect.
+  }
+
+  function attemptGuestReconnect() {
+    if (!net.reconnecting || net.mode !== 'guest' || !net.code) return;
+    if (!net.peer || net.peer.destroyed) {
+      try { if (net.peer) net.peer.destroy(); } catch(e) {}
+      net.peer = new Peer(undefined, PEER_CONFIG);
+      net.peer.on('open', guestConnectToPeer);
+      net.peer.on('error', () => setTimeout(attemptGuestReconnect, 3000));
+      return;
+    }
+    guestConnectToPeer();
+  }
+
+  function guestConnectToPeer() {
+    if (!net.reconnecting) return;
+    try {
+      const conn = net.peer.connect('ticto-' + net.code, { reliable: true });
+      net.conn = conn;
+      let ok = false;
+      const t = setTimeout(() => { if (!ok) { net.reconnecting = false; updateBadge('disconnected'); } }, 12000);
+      conn.on('open', () => { ok = true; clearTimeout(t); onConnReopen(); });
+      conn.on('data', onConnData);
+      conn.on('close', onConnClose);
+      conn.on('error', () => { clearTimeout(t); if (net.reconnecting) setTimeout(attemptGuestReconnect, 3000); });
+    } catch(e) { setTimeout(attemptGuestReconnect, 3000); }
+  }
+
+  // Called when a connection is re-established mid-game (no board reset).
+  function onConnReopen() {
+    net.reconnecting = false;
+    updateBadge('connected');
+    startPing();
+    if (net.mode === 'host') {
+      // Re-send role then current board state so guest can sync.
+      sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
+      sendNet({ type: 'state', board: G.board, turn: G.turn, scores: G.scores,
+                over: G.over, winner: G.winner, winIdx: G.winIdx, placementOrder: G.placementOrder });
+    }
+  }
+
+  // Re-render board state received from host after reconnect.
+  function applyNetState(data) {
+    G = { board: data.board || Array(9).fill(null), turn: data.turn || 'X',
+          scores: data.scores || {X:0,O:0,D:0}, over: !!data.over,
+          winner: data.winner || null, winIdx: data.winIdx !== undefined ? data.winIdx : -1,
+          placementOrder: data.placementOrder || [] };
+    clearOldestMarker();
+    cellEls.forEach((c, i) => {
+      c.classList.remove('filled','win-cell'); c.innerHTML = '';
+      if (G.board[i]) { c.classList.add('filled'); c.appendChild(createMarkSVG(G.board[i])); }
+    });
+    winLine.setAttribute('x1',0); winLine.setAttribute('y1',0);
+    winLine.setAttribute('x2',0); winLine.setAttribute('y2',0);
+    winLine.classList.remove('drawn');
+    winLine.style.strokeDasharray = ''; winLine.style.strokeDashoffset = '';
+    winSvg.style.filter = '';
+    if (G.over && G.winIdx >= 0) {
+      setTimeout(() => { highlightWinCells(WINS[G.winIdx], G.winner); drawWinLine(G.winIdx, G.winner); }, 120);
+      setTimeout(() => showOverlay(G.winner), 350);
+    }
+    updateOldestMarker(); updateDots(); updateScoreBar();
+  }
+
+  // ════════════════════════════════════════════════════════════
   // ONLINE / PEERJS
   // ════════════════════════════════════════════════════════════
   // Deploy server.js on Render.com (free) and paste the hostname below.
@@ -1101,7 +1192,9 @@
   function createGame(existingCode, retries=0) {
     if (typeof Peer==='undefined') { showLobbyErr('Still loading… try again.'); return; }
     const code=existingCode||genCode();
-    net.code=code; net.mode='host'; net.myRole='X';
+    net.code=code; net.mode='host';
+    if (!existingCode) net.myRole = Math.random() < 0.5 ? 'X' : 'O';
+    else if (!net.myRole) net.myRole = 'X';
     sessionStorage.setItem('ticto_host', JSON.stringify({code, ts:Date.now()}));
     document.getElementById('room-code-display').textContent=code;
     document.getElementById('copy-hint').textContent='tap to copy link';
@@ -1130,9 +1223,9 @@
       }
     });
     net.peer.on('connection',conn=>{
-      if(net.conn){conn.close();return;}
+      if(net.conn&&net.conn.open){conn.close();return;}
       net.conn=conn;
-      conn.on('open', onConnOpen);
+      conn.on('open', ()=>{ net.reconnecting ? onConnReopen() : onConnOpen(); });
       conn.on('data', onConnData);
       conn.on('close', onConnClose);
       conn.on('error', onConnClose);
@@ -1175,10 +1268,18 @@
     setTimeout(()=>document.getElementById('code-input').focus(),80);
   }
 
-  function onConnOpen() { sessionStorage.removeItem('ticto_host'); hideLobby(); startOnlineGame(); }
+  function onConnOpen() {
+    sessionStorage.removeItem('ticto_host');
+    if (net.mode === 'host') sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
+    hideLobby(); startOnlineGame();
+  }
 
   function onConnData(data) {
     if(!data||typeof data.type!=='string') return;
+    if(data.type==='ping') { sendNet({type:'pong'}); return; }
+    if(data.type==='pong') { pingMissed=0; return; }
+    if(data.type==='role'&&(data.role==='X'||data.role==='O')) { net.myRole=data.role; updateBadge('connected'); return; }
+    if(data.type==='state') { applyNetState(data); return; }
     if(data.type==='move'&&typeof data.idx==='number') move(data.idx,true);
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
@@ -1186,7 +1287,7 @@
     if(data.type==='series-reset') resetSeries(true);
   }
 
-  function onConnClose() { updateBadge('disconnected'); }
+  function onConnClose() { handleConnLost(); }
 
   function sendNet(data) {
     if(net.conn&&net.conn.open){try{net.conn.send(data);}catch(e){}}
@@ -1209,15 +1310,17 @@
     document.getElementById('chat-input-row').classList.remove('hidden');
     resetChat();
     updateBadge('connected');
+    startPing();
     updateDots();
   }
 
   function leaveOnlineGame() {
+    stopPing();
     clearTimeout(convPromptTimer);
     const cp=document.querySelector('.conv-prompt-overlay');if(cp)cp.remove();
     sessionStorage.removeItem('ticto_host');
     destroyPeer();
-    net={mode:'local',peer:null,conn:null,myRole:null,code:null};
+    net={mode:'local',peer:null,conn:null,myRole:null,code:null,reconnecting:false};
     document.getElementById('online-badge').classList.add('hidden');
     document.getElementById('reaction-bar').classList.add('hidden');
     document.getElementById('chat-input-row').classList.add('hidden');
@@ -1241,6 +1344,8 @@
     if(status==='connected'){
       role.textContent=net.myRole==='X'?'you are X':'you are O';
       role.style.color=net.myRole==='X'?'var(--x)':'var(--o)';
+    } else if(status==='reconnecting'){
+      role.textContent='reconnecting…'; role.style.color='rgba(255,255,255,0.55)';
     } else {
       role.textContent='opponent left'; role.style.color='rgba(255,255,255,0.40)';
     }
