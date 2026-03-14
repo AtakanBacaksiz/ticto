@@ -1250,8 +1250,8 @@
     net.peer=new Peer(undefined, PEER_CONFIG);
     let peerOpened=false, gameJoined=false;
     const peerTimeout=setTimeout(()=>{ if(!peerOpened) showJoinErr(); },15000);
-    // Only boot to error screen if game hasn't started yet — once the DataChannel
-    // is open it works independently of the signaling server.
+    // Only boot to error screen if game hasn't started — DataChannel works
+    // independently of the signaling server once open.
     net.peer.on('error',()=>{ clearTimeout(peerTimeout); if(!gameJoined) showJoinErr(); });
     net.peer.on('open',()=>{
       peerOpened=true; clearTimeout(peerTimeout);
