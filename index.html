@@ -378,23 +378,17 @@
     }
     .o-player { color: var(--o); opacity: 0.80; }
     .x-player { color: var(--x); opacity: 0.80; }
-    .score-record { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .score-nums { display: flex; align-items: baseline; gap: 4px; }
     .sc-n {
-      font-size: 16px; font-weight: 600; min-width: 18px; text-align: center;
-      color: rgba(255,255,255,0.60); font-variant-numeric: tabular-nums;
+      font-size: 22px; font-weight: 700; min-width: 24px; text-align: center;
+      font-variant-numeric: tabular-nums;
     }
+    .sc-n.o-val { color: var(--o); opacity: 0.85; }
+    .sc-n.x-val { color: var(--x); opacity: 0.85; }
     .sc-n.just-bumped { animation: scBump 340ms cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes scBump { 0%{transform:scale(1)} 35%{transform:scale(1.6)} 100%{transform:scale(1)} }
-    .sc-d { font-size: 10px; color: rgba(255,255,255,0.16); }
-    .score-labels { display: flex; gap: 4px; }
-    .sc-lbl {
-      font-size: 8px; letter-spacing: 0.10em; text-transform: uppercase;
-      color: rgba(255,255,255,0.18); min-width: 18px; text-align: center;
-    }
-    .score-total {
-      font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
-      color: rgba(255,255,255,0.16);
+    .score-rounds {
+      font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.22); font-variant-numeric: tabular-nums;
     }
 
     /* REACTION BAR */
@@ -555,34 +549,12 @@
     <div class="score-bar" id="score-bar">
       <div class="score-side">
         <span class="score-player o-player">[O]</span>
-        <div class="score-record">
-          <div class="score-nums">
-            <span class="sc-n" id="sc-o-w">0</span>
-            <span class="sc-d">—</span>
-            <span class="sc-n" id="sc-o-l">0</span>
-          </div>
-          <div class="score-labels">
-            <span class="sc-lbl">W</span>
-            <span class="sc-lbl"></span>
-            <span class="sc-lbl">L</span>
-          </div>
-        </div>
+        <span class="sc-n o-val" id="sc-o-w">0</span>
       </div>
-      <span class="score-total" id="score-total">5 games</span>
+      <span class="score-rounds" id="score-rounds">0:0</span>
       <div class="score-side score-side-right">
+        <span class="sc-n x-val" id="sc-x-w">0</span>
         <span class="score-player x-player">[X]</span>
-        <div class="score-record">
-          <div class="score-nums">
-            <span class="sc-n" id="sc-x-l">0</span>
-            <span class="sc-d">—</span>
-            <span class="sc-n" id="sc-x-w">0</span>
-          </div>
-          <div class="score-labels">
-            <span class="sc-lbl">L</span>
-            <span class="sc-lbl"></span>
-            <span class="sc-lbl">W</span>
-          </div>
-        </div>
       </div>
     </div>
     <!-- REACTION BAR (online only) -->
@@ -618,7 +590,7 @@
   const DIAG_LEN    = Math.round(Math.sqrt(256*256+256*256));
   const WIN_LENGTHS = [272,272,272,272,272,272,DIAG_LEN,DIAG_LEN];
   const CODE_CHARS    = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 chars, no I/O
-  const SERIES_TARGET = 5; // first to reach this many wins takes the series
+  const ROUND_GAMES = 3; // number of games per round
 
   // ════════════════════════════════════════════════════════════
   // CONVERSATION STARTER POOLS
@@ -792,7 +764,7 @@
   // ════════════════════════════════════════════════════════════
   // GAME STATE & DOM
   // ════════════════════════════════════════════════════════════
-  let G = { board:Array(9).fill(null), turn:'X', scores:{X:0,O:0,D:0}, over:false, winner:null, winIdx:-1, placementOrder:[] };
+  let G = { board:Array(9).fill(null), turn:'X', scores:{X:0,O:0}, rounds:{X:0,O:0}, over:false, winner:null, winIdx:-1, placementOrder:[] };
 
   const dotX    = document.getElementById('dot-x');
   const dotO    = document.getElementById('dot-o');
@@ -992,9 +964,9 @@
       }
     }
     overlay.appendChild(createMarkSVG(isDraw?'D':winner,true));
-    const totalGames = G.scores.X + G.scores.O + G.scores.D;
-    const seriesOver = totalGames >= SERIES_TARGET;
-    if (seriesOver) {
+    const roundGames = G.scores.X + G.scores.O;
+    const roundOver = roundGames >= ROUND_GAMES;
+    if (roundOver) {
       clearTimeout(convPromptTimer);
       const banner = document.createElement('div');
       banner.className = 'series-banner';
@@ -1003,13 +975,13 @@
       const scoreLabel = document.createElement('span');
       scoreLabel.className = 'series-score';
       if (G.scores.X > G.scores.O) {
-        winLabel.textContent = 'X wins the series';
+        winLabel.textContent = 'X wins the round';
         scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
       } else if (G.scores.O > G.scores.X) {
-        winLabel.textContent = 'O wins the series';
+        winLabel.textContent = 'O wins the round';
         scoreLabel.textContent = G.scores.O + ' – ' + G.scores.X;
       } else {
-        winLabel.textContent = 'series tied';
+        winLabel.textContent = 'round tied';
         scoreLabel.textContent = G.scores.X + ' – ' + G.scores.O;
       }
       banner.appendChild(winLabel);
@@ -1026,8 +998,8 @@
       }
     }
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
-    btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesOver ? 'New series' : 'Play again');
-    btn.addEventListener('click', () => seriesOver ? resetSeries() : restart());
+    btn.setAttribute('role','button'); btn.setAttribute('aria-label', roundOver ? 'Next round' : 'Play again');
+    btn.addEventListener('click', () => roundOver ? endRound() : restart());
     overlay.appendChild(btn);
     document.body.appendChild(overlay);
     if(!isDraw) setTimeout(()=>createBurstParticles(overlay,color),120);
@@ -1234,8 +1206,6 @@
   }
 
   function updateScoreBar() {
-    const xW = G.scores.X, oW = G.scores.O;
-    const played = xW + oW + G.scores.D;
     function bump(el, val) {
       const v = String(val);
       if (el.textContent !== v) {
@@ -1245,12 +1215,9 @@
         el.classList.add('just-bumped');
       }
     }
-    bump(document.getElementById('sc-o-w'), oW);
-    bump(document.getElementById('sc-o-l'), xW);
-    bump(document.getElementById('sc-x-w'), xW);
-    bump(document.getElementById('sc-x-l'), oW);
-    document.getElementById('score-total').textContent =
-      played === 0 ? SERIES_TARGET + ' games' : played + '/' + SERIES_TARGET;
+    bump(document.getElementById('sc-o-w'), G.scores.O);
+    bump(document.getElementById('sc-x-w'), G.scores.X);
+    document.getElementById('score-rounds').textContent = G.rounds.O + ':' + G.rounds.X;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1306,12 +1273,15 @@
   }
 
   // ════════════════════════════════════════════════════════════
-  // SERIES (first to SERIES_TARGET wins)
+  // ROUNDS (ROUND_GAMES games per round)
   // ════════════════════════════════════════════════════════════
-  function resetSeries(fromNet=false) {
-    G.scores = { X:0, O:0, D:0 };
+  function endRound(fromNet=false) {
+    // Determine round winner and update round tally.
+    if (G.scores.X > G.scores.O) G.rounds.X++;
+    else if (G.scores.O > G.scores.X) G.rounds.O++;
+    G.scores = { X:0, O:0 };
     updateScoreBar();
-    if (net.mode !== 'local' && !fromNet) sendNet({ type: 'series-reset' });
+    if (net.mode !== 'local' && !fromNet) sendNet({ type: 'round-end', rounds: G.rounds });
     restart(fromNet);
   }
 
@@ -1378,7 +1348,7 @@
     if (net.mode === 'host') {
       // Re-send role then current board state so guest can sync.
       sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
-      sendNet({ type: 'state', board: G.board, turn: G.turn, scores: G.scores,
+      sendNet({ type: 'state', board: G.board, turn: G.turn, scores: G.scores, rounds: G.rounds,
                 over: G.over, winner: G.winner, winIdx: G.winIdx, placementOrder: G.placementOrder });
     }
   }
@@ -1386,7 +1356,7 @@
   // Re-render board state received from host after reconnect.
   function applyNetState(data) {
     G = { board: data.board || Array(9).fill(null), turn: data.turn || 'X',
-          scores: data.scores || {X:0,O:0,D:0}, over: !!data.over,
+          scores: data.scores || {X:0,O:0}, rounds: data.rounds || {X:0,O:0}, over: !!data.over,
           winner: data.winner || null, winIdx: data.winIdx !== undefined ? data.winIdx : -1,
           placementOrder: data.placementOrder || [] };
     clearOldestMarker();
@@ -1563,7 +1533,7 @@
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
     if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
-    if(data.type==='series-reset') resetSeries(true);
+    if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
       const ov = document.createElement('div'); ov.className = 'wheel-overlay';
       const closeBtn = document.createElement('div'); closeBtn.className = 'wheel-close-btn';
@@ -1584,7 +1554,7 @@
   function startOnlineGame() {
     clearTimeout(convPromptTimer);
     const cp=document.querySelector('.conv-prompt-overlay');if(cp)cp.remove();
-    G={board:Array(9).fill(null),turn:'X',scores:G.scores,over:false,winner:null,winIdx:-1,placementOrder:[]};
+    G={board:Array(9).fill(null),turn:'X',scores:G.scores,rounds:G.rounds,over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
     winLine.setAttribute('x1',0);winLine.setAttribute('y1',0);
@@ -1613,7 +1583,7 @@
     document.getElementById('reaction-bar').classList.add('hidden');
     document.getElementById('chat-input-row').classList.add('hidden');
     resetChat();
-    G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0,D:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
+    G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0},rounds:{X:0,O:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
     winLine.setAttribute('x1',0);winLine.setAttribute('y1',0);
