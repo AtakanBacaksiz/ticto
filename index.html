@@ -168,15 +168,7 @@
     @keyframes particleFly { 0%{transform:translate(0,0) scale(1.2);opacity:0.85} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
 
     /* ═══════════════════════════════════ SPIN WHEEL ══════ */
-    .overlay-wheel-btn {
-      width: 52px; height: 52px; border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.06);
-      font-size: 24px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 80ms ease-out;
-    }
-    .overlay-wheel-btn:hover  { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.50); }
-    .overlay-wheel-btn:active { transform: scale(0.92); }
-    .wheel-overlay {
+.wheel-overlay {
       position: fixed; inset: 0; background: rgba(6,8,16,0.96);
       backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1036,22 +1028,12 @@
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
     btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesOver ? 'New series' : 'Play again');
     btn.addEventListener('click', () => seriesOver ? resetSeries() : restart());
-    if (!isDraw && (net.mode === 'local' || winner !== net.myRole)) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:12px;align-items:center;';
-      const wheelBtn = document.createElement('div');
-      wheelBtn.className = 'overlay-wheel-btn';
-      wheelBtn.textContent = '🎡';
-      wheelBtn.setAttribute('role','button');
-      wheelBtn.setAttribute('aria-label','Spin the wheel');
-      wheelBtn.addEventListener('click', () => showWheelOverlay(winner));
-      row.appendChild(btn); row.appendChild(wheelBtn);
-      overlay.appendChild(row);
-    } else {
-      overlay.appendChild(btn);
-    }
+    overlay.appendChild(btn);
     document.body.appendChild(overlay);
     if(!isDraw) setTimeout(()=>createBurstParticles(overlay,color),120);
+    if (!isDraw && (net.mode === 'local' || winner !== net.myRole)) {
+      setTimeout(() => showWheelOverlay(winner), 900);
+    }
   }
 
   // ════════════════════════════════════════════════════════════
