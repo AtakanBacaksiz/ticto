@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>TIC.TAC.TOE</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="src/reconnect.js"></script>
 
   <style>
     *, *::before, *::after {
@@ -1060,57 +1061,20 @@
   }
   function stopPing() { clearInterval(pingInterval); pingInterval = null; pingMissed = 0; }
 
-  function handleConnLost() {
-    stopPing();
-    if (net.mode === 'local') return;
-    if (net.reconnecting) return;
-    net.reconnecting = true;
-    net.reconnectStart = Date.now();
-    try { if (net.conn) net.conn.close(); } catch(e) {}
-    net.conn = null;
-    updateBadge('reconnecting');
-    if (net.mode === 'guest') setTimeout(attemptGuestReconnect, 2000);
-    // Host just waits — its peer stays alive and the guest will reconnect.
-  }
-
-  function attemptGuestReconnect() {
-    if (!net.reconnecting || net.mode !== 'guest' || !net.code) return;
-    if (!net.peer || net.peer.destroyed) {
-      try { if (net.peer) net.peer.destroy(); } catch(e) {}
-      net.peer = new Peer(undefined, PEER_CONFIG);
-      net.peer.on('open', guestConnectToPeer);
-      net.peer.on('error', () => setTimeout(attemptGuestReconnect, 3000));
-      return;
-    }
-    guestConnectToPeer();
-  }
-
-  function guestConnectToPeer() {
-    if (!net.reconnecting) return;
-    // Give up only after 45 s of total reconnect attempts.
-    if (Date.now() - (net.reconnectStart || 0) > 45000) {
-      net.reconnecting = false;
-      updateBadge('disconnected');
-      return;
-    }
-    try {
-      const conn = net.peer.connect('ticto-' + net.code, { reliable: true });
-      net.conn = conn;
-      let ok = false;
-      const t = setTimeout(() => {
-        if (!ok && net.reconnecting) {
-          // One attempt timed out — destroy peer for a clean slate and retry.
-          try { conn.close(); } catch(e) {}
-          try { if (net.peer && !net.peer.destroyed) net.peer.destroy(); } catch(e) {}
-          setTimeout(attemptGuestReconnect, 2000);
-        }
-      }, 12000);
-      conn.on('open', () => { ok = true; clearTimeout(t); onConnReopen(); });
-      conn.on('data', onConnData);
-      conn.on('close', onConnClose);
-      conn.on('error', () => { clearTimeout(t); if (net.reconnecting) setTimeout(attemptGuestReconnect, 3000); });
-    } catch(e) { setTimeout(attemptGuestReconnect, 3000); }
-  }
+  // Wire the reconnect helpers (defined in src/reconnect.js) with live deps.
+  // newPeer wraps the Peer constructor; PEER_CONFIG is closed over lazily so
+  // this call can sit here even though PEER_CONFIG is declared further below.
+  const { handleConnLost, attemptGuestReconnect, guestConnectToPeer } =
+    makeReconnectModule({
+      getNet:       () => net,
+      newPeer:      id => new Peer(id, PEER_CONFIG),
+      stopPing,
+      updateBadge,
+      onConnReopen,
+      onConnData,
+      onConnClose,
+      now:          () => Date.now(),
+    });
 
   // Called when a connection is re-established mid-game (no board reset).
   function onConnReopen() {
@@ -1221,8 +1185,7 @@
       // Signaling-server blips don't affect an already-open DataChannel.
       // Also ignore them while a guest reconnect is in progress — the DataChannel
       // closed but the guest will come back; we must keep the same peer ID.
-      const isSignalingErr = ['network','server-error','socket-error','socket-closed'].includes(err.type);
-      if (isSignalingErr && (net.conn && net.conn.open || net.reconnecting)) return;
+      if (shouldIgnoreHostPeerError(err.type, net)) return;
       net.peer.destroy();
       if (err.type==='unavailable-id') {
         // Server may still hold the old ID for a few seconds after an app-switch.
