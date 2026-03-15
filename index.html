@@ -202,12 +202,7 @@
     }
     .wheel-disk {
       width: 100%; height: 100%; border-radius: 50%;
-      background: conic-gradient(
-        #B83229 0deg 45deg,  #2A6FA8 45deg 90deg,
-        #B83229 90deg 135deg, #2A6FA8 135deg 180deg,
-        #B83229 180deg 225deg, #2A6FA8 225deg 270deg,
-        #B83229 270deg 315deg, #2A6FA8 315deg 360deg
-      );
+      /* background set dynamically per wheel type */
       box-shadow: 0 0 0 4px rgba(255,255,255,0.10), 0 8px 40px rgba(0,0,0,0.55);
       transition: transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99);
       position: relative; overflow: hidden;
@@ -220,14 +215,23 @@
       position: absolute; width: 48px; height: 48px; border-radius: 50%;
       background: #060810; border: 3px solid rgba(255,255,255,0.18); z-index: 2;
     }
-    .wheel-legend {
-      font-size: 13px; color: rgba(255,255,255,0.45); letter-spacing: 0.06em;
-      display: flex; gap: 22px; align-items: center;
+    /* Choice screens (role / dare-truth) */
+    .wheel-choice-title {
+      font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.35); text-align: center;
     }
-    .wheel-legend span { display: flex; align-items: center; gap: 7px; }
-    .wheel-legend .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .wheel-legend .dot-dare   { background: #B83229; }
-    .wheel-legend .dot-reward { background: #2A6FA8; }
+    .wheel-choice-btn {
+      width: min(280px,82vw); padding: 20px 24px; border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
+      cursor: pointer; text-align: center; transition: all 80ms ease-out;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .wheel-choice-btn:hover  { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.35); }
+    .wheel-choice-btn:active { transform: scale(0.97); }
+    .wheel-choice-emoji { font-size: 30px; line-height: 1; }
+    .wheel-choice-label { font-size: 15px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.82); }
+    .wheel-choice-sub   { font-size: 12px; color: rgba(255,255,255,0.38); }
+    .wheel-type-label   { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; }
     .wheel-spin-btn {
       padding: 13px 38px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.07);
@@ -238,7 +242,7 @@
     .wheel-spin-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.50); }
     .wheel-spin-btn:active:not(:disabled) { transform: scale(0.95); }
     .wheel-spin-btn:disabled { opacity: 0.28; cursor: default; }
-    /* Result card — rotated 180° so the opponent can read it */
+    /* Result card — straight by default; add --rotated for loser's offline result */
     .wheel-result-overlay {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       background: rgba(6,8,16,0.82); backdrop-filter: blur(6px); z-index: 3;
@@ -250,6 +254,13 @@
       border: 1.5px solid rgba(255,255,255,0.10);
       box-shadow: 0 20px 64px rgba(0,0,0,0.75);
       backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+      animation: wheelCardPopStraight 400ms cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes wheelCardPopStraight {
+      from { transform: scale(0.65); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .wheel-result-card--rotated {
       transform: rotate(180deg);
       animation: wheelCardPop 400ms cubic-bezier(0.34,1.56,0.64,1) both;
     }
@@ -257,20 +268,7 @@
       from { transform: rotate(180deg) scale(0.65); opacity: 0; }
       to   { transform: rotate(180deg) scale(1);    opacity: 1; }
     }
-    /* Straight (non-rotated) variant for online mode */
-    .wheel-result-card--straight {
-      transform: none;
-      animation: wheelCardPopStraight 400ms cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    @keyframes wheelCardPopStraight {
-      from { transform: scale(0.65); opacity: 0; }
-      to   { transform: scale(1);    opacity: 1; }
-    }
-    .wheel-result-tag {
-      font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
-      font-weight: 700; margin-bottom: 8px;
-    }
-    .wheel-result-emoji { font-size: 42px; margin-bottom: 8px; line-height: 1; }
+    .wheel-result-emoji { font-size: 42px; margin-bottom: 10px; line-height: 1; }
     .wheel-result-text {
       font-size: clamp(15px,4.2vw,18px); color: rgba(255,255,255,0.85);
       line-height: 1.55; margin-bottom: 22px;
@@ -1038,7 +1036,7 @@
     const btn=document.createElement('div'); btn.className='overlay-reset'; btn.textContent='↺';
     btn.setAttribute('role','button'); btn.setAttribute('aria-label', seriesOver ? 'New series' : 'Play again');
     btn.addEventListener('click', () => seriesOver ? resetSeries() : restart());
-    if (!isDraw) {
+    if (!isDraw && (net.mode === 'local' || winner !== net.myRole)) {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;gap:12px;align-items:center;';
       const wheelBtn = document.createElement('div');
@@ -1046,7 +1044,7 @@
       wheelBtn.textContent = '🎡';
       wheelBtn.setAttribute('role','button');
       wheelBtn.setAttribute('aria-label','Spin the wheel');
-      wheelBtn.addEventListener('click', showWheelOverlay);
+      wheelBtn.addEventListener('click', () => showWheelOverlay(winner));
       row.appendChild(btn); row.appendChild(wheelBtn);
       overlay.appendChild(row);
     } else {
@@ -1057,20 +1055,67 @@
   }
 
   // ════════════════════════════════════════════════════════════
-  // SPIN WHEEL (offline / pass-and-play only)
+  // SPIN WHEEL
   // ════════════════════════════════════════════════════════════
-  const WHEEL_ITEMS = [
-    { type:'dare',   emoji:'😳', text:'Confess your biggest crush' },
-    { type:'reward', emoji:'☕', text:'Winner owes you a coffee date' },
-    { type:'dare',   emoji:'💪', text:'Do 10 push-ups right now' },
-    { type:'reward', emoji:'🎬', text:'Movie night — your pick' },
-    { type:'dare',   emoji:'🙈', text:'Share your most embarrassing memory' },
-    { type:'reward', emoji:'🍝', text:'Winner cooks you dinner' },
-    { type:'dare',   emoji:'🤫', text:'Tell something you\'ve never told anyone' },
-    { type:'reward', emoji:'🌅', text:'Sunset walk together — winner\'s treat' },
+  const WHEEL_DARE = [
+    { emoji:'💪', text:'Do 10 push-ups right now' },
+    { emoji:'💃', text:'Do your best dance move for 30 seconds' },
+    { emoji:'🖊️', text:'Let the winner draw on your arm' },
+    { emoji:'🎭', text:'Imitate someone the winner picks, for 1 minute' },
+    { emoji:'📱', text:'Send a text the winner dictates' },
+    { emoji:'🎤', text:'Speak only in rhymes for 1 minute' },
+    { emoji:'📸', text:'Let the winner pick your next profile photo' },
+    { emoji:'🎬', text:'Act out a scene — winner picks the movie' },
+  ];
+  const WHEEL_TRUTH = [
+    { emoji:'😳', text:'Confess your biggest crush' },
+    { emoji:'🙈', text:'What\'s the most embarrassing thing you\'ve done this year?' },
+    { emoji:'🤫', text:'Tell something you\'ve never told anyone' },
+    { emoji:'😅', text:'What\'s the worst lie you\'ve ever told?' },
+    { emoji:'📱', text:'Who do you text most — and why?' },
+    { emoji:'🤔', text:'Something you pretend not to care about but actually do?' },
+    { emoji:'😨', text:'What\'s your most irrational fear?' },
+    { emoji:'🔍', text:'What would your search history reveal about you?' },
+  ];
+  const WHEEL_REWARD = [
+    { emoji:'☕', text:'They owe you a coffee date' },
+    { emoji:'🎬', text:'Movie night — your pick' },
+    { emoji:'🍝', text:'They cook you dinner' },
+    { emoji:'🌅', text:'Sunset walk together — their treat' },
+    { emoji:'💆', text:'They owe you a massage' },
+    { emoji:'📍', text:'You choose the next hangout' },
+    { emoji:'🎯', text:'You get to dare them something right now' },
+    { emoji:'🤔', text:'You get to ask them any truth question' },
   ];
 
-  function showWheelOverlay() {
+  // One color pair (light, dark) per wheel type for alternating segments.
+  const WHEEL_COLORS = {
+    dare:   ['#E74C3C', '#B03A2E'],
+    truth:  ['#8E44AD', '#6C3483'],
+    reward: ['#E67E22', '#B35B10'],
+  };
+  const WHEEL_POOL = { dare: WHEEL_DARE, truth: WHEEL_TRUTH, reward: WHEEL_REWARD };
+
+  // Replace all overlay content (keep the × close button).
+  function wheelSetContent(ov, ...nodes) {
+    const close = ov.querySelector('.wheel-close-btn');
+    while (ov.firstChild) ov.removeChild(ov.firstChild);
+    if (close) ov.appendChild(close);
+    nodes.forEach(n => ov.appendChild(n));
+  }
+
+  function makeWheelChoiceBtn(emoji, label, sub) {
+    const btn = document.createElement('div');
+    btn.className = 'wheel-choice-btn'; btn.setAttribute('role','button');
+    const eEl = document.createElement('div'); eEl.className = 'wheel-choice-emoji'; eEl.textContent = emoji;
+    const lEl = document.createElement('div'); lEl.className = 'wheel-choice-label'; lEl.textContent = label;
+    const sEl = document.createElement('div'); sEl.className = 'wheel-choice-sub';   sEl.textContent = sub;
+    btn.append(eEl, lEl, sEl);
+    return btn;
+  }
+
+  // Entry point — called when 🎡 is tapped.
+  function showWheelOverlay(winner) {
     clearTimeout(convPromptTimer);
     document.querySelector('.conv-prompt-overlay')?.remove();
 
@@ -1078,140 +1123,113 @@
     ov.className = 'wheel-overlay';
 
     const closeBtn = document.createElement('div');
-    closeBtn.className = 'wheel-close-btn';
-    closeBtn.textContent = '×';
+    closeBtn.className = 'wheel-close-btn'; closeBtn.textContent = '×';
     closeBtn.setAttribute('role','button');
     closeBtn.addEventListener('click', () => ov.remove());
     ov.appendChild(closeBtn);
 
-    const wrap = document.createElement('div');
-    wrap.className = 'wheel-wrap';
+    if (net.mode === 'local') {
+      // Offline: ask who's spinning so we know which wheel to show.
+      wheelShowRoleChoice(ov, winner);
+    } else {
+      // Online: only the loser spins; go straight to dare / truth choice.
+      wheelShowDareTruth(ov, false);
+    }
 
-    const ptr = document.createElement('div');
-    ptr.className = 'wheel-ptr';
-    wrap.appendChild(ptr);
+    document.body.appendChild(ov);
+  }
 
-    const disk = document.createElement('div');
-    disk.className = 'wheel-disk';
-    disk.style.transform = `rotate(${wheelRot}deg)`;
-    disk.style.transition = 'none';
-    wrap.appendChild(disk);
+  // Offline only — "I won / I lost" selection.
+  function wheelShowRoleChoice(ov, winner) {
+    const title = document.createElement('div');
+    title.className = 'wheel-choice-title'; title.textContent = 'who\'s spinning?';
 
-    const hub = document.createElement('div');
-    hub.className = 'wheel-hub';
-    wrap.appendChild(hub);
+    const wonBtn = makeWheelChoiceBtn('🏆', 'I Won', 'spin for your reward');
+    wonBtn.addEventListener('click', () => wheelShowSpin(ov, 'reward', false));
 
-    ov.appendChild(wrap);
+    const lostBtn = makeWheelChoiceBtn('😅', 'I Lost', 'dare or truth?');
+    lostBtn.addEventListener('click', () => wheelShowDareTruth(ov, true));
 
-    const legend = document.createElement('div');
-    legend.className = 'wheel-legend';
-    legend.innerHTML =
-      '<span><span class="dot dot-dare"></span>Dare</span>' +
-      '<span><span class="dot dot-reward"></span>Reward</span>';
-    ov.appendChild(legend);
+    wheelSetContent(ov, title, wonBtn, lostBtn);
+  }
+
+  // Loser picks dare or truth before spinning.
+  // rotated=true for offline (winner reads result across the table); false for online.
+  function wheelShowDareTruth(ov, rotated) {
+    const title = document.createElement('div');
+    title.className = 'wheel-choice-title'; title.textContent = 'your fate awaits';
+
+    const dareBtn = makeWheelChoiceBtn('🎯', 'Dare', 'a physical challenge');
+    dareBtn.addEventListener('click', () => wheelShowSpin(ov, 'dare', rotated));
+
+    const truthBtn = makeWheelChoiceBtn('❓', 'Truth', 'answer honestly');
+    truthBtn.addEventListener('click', () => wheelShowSpin(ov, 'truth', rotated));
+
+    wheelSetContent(ov, title, dareBtn, truthBtn);
+  }
+
+  // The spinning wheel itself, colored by type.
+  function wheelShowSpin(ov, type, rotated) {
+    const [c1, c2] = WHEEL_COLORS[type];
+    const gradient = 'conic-gradient(' +
+      Array.from({length:8}, (_,i) => `${i%2?c2:c1} ${i*45}deg ${(i+1)*45}deg`).join(',') + ')';
+
+    const wrap = document.createElement('div'); wrap.className = 'wheel-wrap';
+    const ptr  = document.createElement('div'); ptr.className = 'wheel-ptr';
+    const disk = document.createElement('div'); disk.className = 'wheel-disk';
+    disk.style.background = gradient;
+    disk.style.transform = `rotate(${wheelRot}deg)`; disk.style.transition = 'none';
+    const hub  = document.createElement('div'); hub.className = 'wheel-hub';
+    wrap.append(ptr, disk, hub);
+
+    const typeLabel = document.createElement('div');
+    typeLabel.className = 'wheel-type-label';
+    typeLabel.style.color = c1;
+    typeLabel.textContent = type.toUpperCase();
 
     const spinBtn = document.createElement('button');
-    spinBtn.className = 'wheel-spin-btn';
-    spinBtn.textContent = 'SPIN';
+    spinBtn.className = 'wheel-spin-btn'; spinBtn.textContent = 'SPIN';
     spinBtn.addEventListener('click', () => {
       spinBtn.disabled = true;
-      const idx = Math.floor(Math.random() * WHEEL_ITEMS.length);
-      // Rotate so segment idx lands under the pointer (top of wheel).
-      // Segment i occupies [i*45, (i+1)*45]°; its centre is at i*45+22.5°.
-      // Rotating the disk clockwise by R brings the part originally at R° to the top.
-      const curOffset = ((wheelRot % 360) + 360) % 360;
+      const pool = WHEEL_POOL[type];
+      const idx = Math.floor(Math.random() * pool.length);
+      // Rotate so segment idx centres under the pointer.
+      const curOffset  = ((wheelRot % 360) + 360) % 360;
       const targetOffset = idx * 45 + 22.5;
       const delta = ((targetOffset - curOffset) + 360) % 360;
       wheelRot += 5 * 360 + (delta === 0 ? 360 : delta);
       disk.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99)';
       disk.style.transform = `rotate(${wheelRot}deg)`;
-      setTimeout(() => {
-        if (net.mode === 'local') {
-          // Local: show result rotated 180° for the opponent to read across the table.
-          showWheelResult(ov, WHEEL_ITEMS[idx], true);
-        } else {
-          // Online: broadcast result to opponent; show a brief "sent" confirmation.
-          sendNet({ type: 'wheel', idx });
-          showWheelSent(ov, WHEEL_ITEMS[idx]);
-        }
-      }, 3620);
+      setTimeout(() => showWheelResult(ov, pool[idx], rotated, c1), 3620);
     });
-    ov.appendChild(spinBtn);
 
-    document.body.appendChild(ov);
+    wheelSetContent(ov, wrap, typeLabel, spinBtn);
   }
 
-  // Show the result card (called locally in offline mode, or on opponent's side online).
-  // rotated=true flips the card 180° so the opponent can read it across the table.
-  function showWheelResult(wheelOv, item, rotated) {
-    const isDare = item.type === 'dare';
-    const accent = isDare ? '#E8635A' : '#5B9EF5';
-
+  // Result card. rotated=true (offline loser) flips 180° so the winner reads it
+  // across the table. rotated=false (online, or winner's reward) keeps it upright.
+  function showWheelResult(wheelOv, item, rotated, accent) {
     const resultOv = document.createElement('div');
     resultOv.className = 'wheel-result-overlay';
 
     const card = document.createElement('div');
-    card.className = 'wheel-result-card' + (rotated ? '' : ' wheel-result-card--straight');
-    card.style.borderColor = accent + '44';
-
-    const tag = document.createElement('div');
-    tag.className = 'wheel-result-tag';
-    tag.style.color = accent;
-    tag.textContent = isDare ? '— dare —' : '— reward —';
+    card.className = 'wheel-result-card' + (rotated ? ' wheel-result-card--rotated' : '');
+    card.style.borderColor = (accent || 'rgba(255,255,255,0.14)') + '55';
 
     const emojiEl = document.createElement('div');
-    emojiEl.className = 'wheel-result-emoji';
-    emojiEl.textContent = item.emoji;
+    emojiEl.className = 'wheel-result-emoji'; emojiEl.textContent = item.emoji;
 
     const textEl = document.createElement('div');
-    textEl.className = 'wheel-result-text';
-    textEl.textContent = item.text;
+    textEl.className = 'wheel-result-text'; textEl.textContent = item.text;
 
     const okBtn = document.createElement('div');
-    okBtn.className = 'wheel-result-ok';
-    okBtn.textContent = isDare ? 'Challenge accepted 💪' : 'Date night it is 🎉';
+    okBtn.className = 'wheel-result-ok'; okBtn.textContent = 'Got it! 👍';
     okBtn.setAttribute('role','button');
     okBtn.addEventListener('click', () => wheelOv.remove());
 
-    card.append(tag, emojiEl, textEl, okBtn);
+    card.append(emojiEl, textEl, okBtn);
     resultOv.appendChild(card);
     wheelOv.appendChild(resultOv);
-  }
-
-  // Online spinner sees this after sending the result to the opponent.
-  function showWheelSent(wheelOv, item) {
-    const isDare = item.type === 'dare';
-    const accent = isDare ? '#E8635A' : '#5B9EF5';
-
-    const sentOv = document.createElement('div');
-    sentOv.className = 'wheel-result-overlay';
-
-    const card = document.createElement('div');
-    card.className = 'wheel-result-card wheel-result-card--straight';
-    card.style.borderColor = accent + '44';
-
-    const tag = document.createElement('div');
-    tag.className = 'wheel-result-tag';
-    tag.style.color = accent;
-    tag.textContent = isDare ? '— dare —' : '— reward —';
-
-    const emojiEl = document.createElement('div');
-    emojiEl.className = 'wheel-result-emoji';
-    emojiEl.textContent = '📨';
-
-    const textEl = document.createElement('div');
-    textEl.className = 'wheel-result-text';
-    textEl.textContent = 'Sent to your opponent!';
-
-    const okBtn = document.createElement('div');
-    okBtn.className = 'wheel-result-ok';
-    okBtn.textContent = 'Close';
-    okBtn.setAttribute('role','button');
-    okBtn.addEventListener('click', () => wheelOv.remove());
-
-    card.append(tag, emojiEl, textEl, okBtn);
-    sentOv.appendChild(card);
-    wheelOv.appendChild(sentOv);
   }
 
   function updateBadgeTurn() {
@@ -1559,15 +1577,7 @@
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
     if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
     if(data.type==='series-reset') resetSeries(true);
-    if(data.type==='wheel'&&typeof data.idx==='number'&&WHEEL_ITEMS[data.idx]) {
-      // Opponent spun the wheel — show us the result (straight, on our own screen).
-      const ov = document.createElement('div'); ov.className = 'wheel-overlay';
-      const closeBtn = document.createElement('div'); closeBtn.className = 'wheel-close-btn';
-      closeBtn.textContent = '×'; closeBtn.setAttribute('role','button');
-      closeBtn.addEventListener('click', () => ov.remove()); ov.appendChild(closeBtn);
-      document.body.appendChild(ov);
-      showWheelResult(ov, WHEEL_ITEMS[data.idx], false);
-    }
+
   }
 
   function onConnClose() { handleConnLost(); }
