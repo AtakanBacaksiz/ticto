@@ -1212,6 +1212,11 @@
     card.append(emojiEl, textEl, okBtn);
     resultOv.appendChild(card);
     wheelOv.appendChild(resultOv);
+
+    // In online mode, share the result with the opponent so they see it too.
+    if (net.mode !== 'local') {
+      sendNet({ type: 'wheel-result', emoji: item.emoji, text: item.text, accent: accent || null });
+    }
   }
 
   function updateBadgeTurn() {
@@ -1559,6 +1564,14 @@
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
     if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
     if(data.type==='series-reset') resetSeries(true);
+    if(data.type==='wheel-result' && data.emoji && data.text) {
+      const ov = document.createElement('div'); ov.className = 'wheel-overlay';
+      const closeBtn = document.createElement('div'); closeBtn.className = 'wheel-close-btn';
+      closeBtn.textContent = '×'; closeBtn.setAttribute('role','button');
+      closeBtn.addEventListener('click', () => ov.remove()); ov.appendChild(closeBtn);
+      document.body.appendChild(ov);
+      showWheelResult(ov, { emoji: data.emoji, text: data.text }, false, data.accent || null);
+    }
 
   }
 
