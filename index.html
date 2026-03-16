@@ -419,27 +419,52 @@
       100% { transform: translate(-50%, -110px) scale(0.75); opacity: 0; }
     }
 
-    /* PUSH-TO-TALK BUTTON (online only) */
+    /* PUSH-TO-TALK + CHAT ROW (online only) */
     .ptt-row {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
+      display: flex; align-items: center; gap: 8px;
+      width: min(88vw, calc(100dvh - 200px), 520px);
     }
     .ptt-row.hidden { display: none; }
+    /* Chat input wrapper — submit button lives inside */
+    .chat-wrap {
+      flex: 1; position: relative; display: flex; align-items: center;
+    }
+    .chat-text-input {
+      width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 4px; padding: 9px 42px 9px 14px; color: white; font-size: 14px;
+      font-family: inherit; outline: none; caret-color: var(--o);
+      transition: border-color 150ms; box-sizing: border-box;
+    }
+    .chat-text-input:focus { border-color: rgba(255,255,255,0.22); }
+    .chat-text-input::placeholder { color: rgba(255,255,255,0.22); }
+    .chat-send-btn {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 28px; height: 28px; border-radius: 3px; border: none;
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.45);
+      font-size: 13px; cursor: pointer; transition: all 120ms;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .chat-send-btn:hover { background: rgba(255,255,255,0.18); color: white; }
+    .chat-send-btn:active { transform: translateY(-50%) scale(0.88); }
+    /* PTT button — square */
     .ptt-btn {
-      width: 52px; height: 52px; border-radius: 50%;
+      width: 42px; height: 42px; border-radius: 4px; flex-shrink: 0;
       border: 1.5px solid rgba(255,255,255,0.15);
       background: rgba(255,255,255,0.06);
-      font-size: 21px; cursor: pointer; position: relative;
+      cursor: pointer; position: relative;
       display: flex; align-items: center; justify-content: center;
       transition: background 120ms, border-color 120ms, box-shadow 120ms;
       -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none;
     }
+    .ptt-btn svg { width: 18px; height: 18px; fill: rgba(255,255,255,0.50); transition: fill 120ms; }
     .ptt-btn.speaking {
       background: rgba(91,158,245,0.28);
       border-color: rgba(91,158,245,0.75);
-      box-shadow: 0 0 20px rgba(91,158,245,0.50);
+      box-shadow: 0 0 16px rgba(91,158,245,0.50);
     }
+    .ptt-btn.speaking svg { fill: rgba(91,158,245,1); }
     .ptt-btn.speaking::after {
-      content: ''; position: absolute; inset: -7px; border-radius: 50%;
+      content: ''; position: absolute; inset: -6px; border-radius: 6px;
       border: 1.5px solid rgba(91,158,245,0.55);
       animation: pttRing 0.85s ease-out infinite;
     }
@@ -447,14 +472,30 @@
       0%   { transform: scale(1);    opacity: 0.85; }
       100% { transform: scale(1.40); opacity: 0;    }
     }
-    .ptt-label {
-      font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
-      color: rgba(255,255,255,0.22); pointer-events: none;
-    }
     .ptt-btn.remote-speaking {
       border-color: rgba(232,99,90,0.65);
-      box-shadow: 0 0 14px rgba(232,99,90,0.35);
+      box-shadow: 0 0 12px rgba(232,99,90,0.35);
     }
+    .ptt-btn.remote-speaking svg { fill: rgba(232,99,90,0.90); }
+
+    /* CHAT FEED (floating messages over board) */
+    .chat-feed {
+      position: absolute; bottom: 10px; left: 10px; right: 10px;
+      display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
+      pointer-events: none; z-index: 10;
+    }
+    .cbf {
+      max-width: 72%; padding: 6px 12px;
+      background: rgba(6,8,18,0.52); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px; font-size: 13px; line-height: 1.4;
+      color: rgba(255,255,255,0.82); word-break: break-word;
+      animation: cbfIn 180ms ease forwards, cbfOut 500ms ease 9.5s forwards;
+    }
+    .cbf.mine { align-self: flex-end; background: rgba(91,158,245,0.16); border-color: rgba(91,158,245,0.22); }
+    .cbf-who { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.28); margin-bottom: 2px; }
+    @keyframes cbfIn  { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+    @keyframes cbfOut { from{opacity:1} to{opacity:0} }
 
     /* SERIES BANNER (inside result overlay) */
     .series-banner {
@@ -538,6 +579,7 @@
         <div class="cell" data-i="3"></div><div class="cell" data-i="4"></div><div class="cell" data-i="5"></div>
         <div class="cell" data-i="6"></div><div class="cell" data-i="7"></div><div class="cell" data-i="8"></div>
       </div>
+      <div class="chat-feed" id="chat-feed"></div>
     </div>
     <button class="reset-btn" id="reset-btn" aria-label="New game">↺</button>
     <div class="score-bar" id="score-bar">
@@ -560,10 +602,19 @@
       <button class="react-btn" data-emoji="😤" aria-label="Grr">😤</button>
       <button class="react-btn" data-emoji="💀" aria-label="Skull">💀</button>
     </div>
-    <!-- PUSH-TO-TALK (online only) -->
+    <!-- CHAT + PUSH-TO-TALK (online only) -->
     <div class="ptt-row hidden" id="ptt-row">
-      <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">🎙</button>
-      <span class="ptt-label">hold to talk</span>
+      <div class="chat-wrap">
+        <input type="text" class="chat-text-input" id="chat-text-input"
+          placeholder="message…" maxlength="200"
+          autocomplete="off" autocorrect="on" spellcheck="true" />
+        <button class="chat-send-btn" id="chat-send-btn" aria-label="Send">↑</button>
+      </div>
+      <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 18.93A8.001 8.001 0 0 1 4 12H2a10 10 0 0 0 9 9.95V24h2v-2.07A10 10 0 0 0 22 12h-2a8 8 0 0 1-7 7.93z"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -1230,6 +1281,34 @@
   }
 
   // ════════════════════════════════════════════════════════════
+  // CHAT
+  // ════════════════════════════════════════════════════════════
+  function appendChatMsg(text, mine) {
+    const feed = document.getElementById('chat-feed');
+    const myRole = net.myRole || 'X';
+    const theirRole = myRole === 'X' ? 'O' : 'X';
+    const bubble = document.createElement('div');
+    bubble.className = 'cbf' + (mine ? ' mine' : '');
+    const who = document.createElement('div');
+    who.className = 'cbf-who';
+    who.textContent = mine ? myRole + ' · you' : theirRole + ' · them';
+    bubble.appendChild(who);
+    bubble.appendChild(document.createTextNode(text));
+    feed.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 10000);
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chat-text-input');
+    const text = input.value.trim().slice(0, 200);
+    if (!text || net.mode === 'local' || !net.conn || !net.conn.open) return;
+    appendChatMsg(text, true);
+    sendNet({ type: 'chat', text });
+    input.value = '';
+  }
+
+
+  // ════════════════════════════════════════════════════════════
   // VOICE CHAT (push-to-talk via WebRTC media call)
   // ════════════════════════════════════════════════════════════
   let voiceStream = null;   // local MediaStream
@@ -1566,6 +1645,7 @@
     if(data.type==='move'&&typeof data.idx==='number') move(data.idx,true);
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
+    if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
     if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
       const ov = document.createElement('div'); ov.className = 'wheel-overlay';
@@ -1647,6 +1727,10 @@
   // ════════════════════════════════════════════════════════════
   document.querySelectorAll('.react-btn[data-emoji]').forEach(btn => {
     btn.addEventListener('click', () => sendReaction(btn.dataset.emoji));
+  });
+  document.getElementById('chat-send-btn').addEventListener('click', sendChat);
+  document.getElementById('chat-text-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
   });
 
   (function () {
