@@ -1543,6 +1543,7 @@
     sessionStorage.removeItem('ticto_host');
     if (net.mode === 'host') sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
     hideLobby(); startOnlineGame();
+    initVoiceChat();
   }
 
   function onConnData(data) {
@@ -1596,6 +1597,7 @@
 
   function leaveOnlineGame() {
     stopPing();
+    teardownVoiceChat();
     clearTimeout(convPromptTimer);
     const cp=document.querySelector('.conv-prompt-overlay');if(cp)cp.remove();
     sessionStorage.removeItem('ticto_host');
@@ -1603,8 +1605,7 @@
     net={mode:'local',peer:null,conn:null,myRole:null,code:null,reconnecting:false};
     document.getElementById('online-badge').classList.add('hidden');
     document.getElementById('reaction-bar').classList.add('hidden');
-    document.getElementById('chat-input-row').classList.add('hidden');
-    resetChat();
+    document.getElementById('ptt-row').classList.add('hidden');
     G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0},rounds:{X:0,O:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -1657,6 +1658,27 @@
   pttBtn.addEventListener('touchstart', pttPress,   { passive: false });
   pttBtn.addEventListener('touchend',   pttRelease, { passive: false });
   pttBtn.addEventListener('touchcancel',pttRelease, { passive: false });
+
+  (function () {
+    const btn = document.getElementById('ptt-btn');
+    function pttStart(e) {
+      e.preventDefault();
+      if (!voiceStream) return;
+      voiceStream.getAudioTracks().forEach(t => { t.enabled = true; });
+      btn.classList.add('speaking');
+    }
+    function pttStop() {
+      if (!voiceStream) return;
+      voiceStream.getAudioTracks().forEach(t => { t.enabled = false; });
+      btn.classList.remove('speaking');
+    }
+    btn.addEventListener('mousedown',  pttStart);
+    btn.addEventListener('touchstart', pttStart, { passive: false });
+    btn.addEventListener('mouseup',    pttStop);
+    btn.addEventListener('mouseleave', pttStop);
+    btn.addEventListener('touchend',   pttStop);
+    btn.addEventListener('touchcancel',pttStop);
+  })();
 
   // ════════════════════════════════════════════════════════════
   // LOBBY EVENTS
