@@ -318,46 +318,38 @@
       100% { transform: translate(-50%, -110px) scale(0.75); opacity: 0; }
     }
 
-    /* CHAT FEED (floating messages over board) */
-    .chat-feed {
-      position: absolute; bottom: 10px; left: 10px; right: 10px;
-      display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
-      pointer-events: none; z-index: 10;
-    }
-    .cbf {
-      max-width: 72%; padding: 6px 12px;
-      background: rgba(6,8,18,0.48); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 12px; font-size: 13px; line-height: 1.4;
-      color: rgba(255,255,255,0.82); word-break: break-word;
-      animation: cbfIn 180ms ease forwards, cbfOut 500ms ease 9.5s forwards;
-    }
-    .cbf.mine { align-self: flex-end; background: rgba(91,158,245,0.16); border-color: rgba(91,158,245,0.22); }
-    .cbf-who { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.28); margin-bottom: 2px; }
-    @keyframes cbfIn  { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
-    @keyframes cbfOut { from{opacity:1} to{opacity:0} }
-
-    /* CHAT INPUT ROW (inline, online only) */
+    /* VOICE CHAT — push to talk */
     .chat-input-row {
-      display: flex; gap: 8px; align-items: center;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
       width: min(88vw, calc(100dvh - 200px), 520px);
     }
     .chat-input-row.hidden { display: none; }
-    .chat-text-input {
-      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 3px; padding: 9px 16px; color: white; font-size: 14px; font-family: inherit;
-      outline: none; caret-color: var(--o); transition: border-color 150ms;
+    .ptt-btn {
+      width: 110px; height: 38px; border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.38); font-size: 12px; font-family: inherit;
+      cursor: pointer; letter-spacing: 0.10em; text-transform: uppercase;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+      transition: border-color 100ms, background 100ms, color 100ms, box-shadow 100ms;
     }
-    .chat-text-input:focus { border-color: rgba(255,255,255,0.22); }
-    .chat-text-input::placeholder { color: rgba(255,255,255,0.20); }
-    .chat-send-btn {
-      width: 36px; height: 36px; flex-shrink: 0; border-radius: 3px; border: none;
-      background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.55);
-      font-size: 15px; cursor: pointer; transition: all 130ms;
-      display: flex; align-items: center; justify-content: center;
+    .ptt-btn:hover { border-color: rgba(255,255,255,0.24); color: rgba(255,255,255,0.60); }
+    .ptt-btn.active {
+      background: rgba(74,222,128,0.10); border-color: rgba(74,222,128,0.50);
+      color: rgba(74,222,128,0.92); box-shadow: 0 0 12px rgba(74,222,128,0.22);
+      animation: pttPulse 0.75s ease-in-out infinite;
     }
-    .chat-send-btn:hover { background: rgba(255,255,255,0.20); color: white; }
-    .chat-send-btn:active { transform: scale(0.90); }
+    @keyframes pttPulse { 0%,100%{box-shadow:0 0 8px rgba(74,222,128,0.18)} 50%{box-shadow:0 0 20px rgba(74,222,128,0.42)} }
+    .ptt-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: currentColor; opacity: 0.70;
+    }
+    .ptt-hint {
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.18); transition: color 150ms;
+    }
+    .ptt-hint.them { color: rgba(91,158,245,0.65); animation: pttThemBlink 0.55s steps(1) infinite; }
+    @keyframes pttThemBlink { 0%,49%{opacity:1} 50%,100%{opacity:0.15} }
 
     /* SERIES BANNER (inside result overlay) */
     .series-banner {
@@ -441,8 +433,6 @@
         <div class="cell" data-i="3"></div><div class="cell" data-i="4"></div><div class="cell" data-i="5"></div>
         <div class="cell" data-i="6"></div><div class="cell" data-i="7"></div><div class="cell" data-i="8"></div>
       </div>
-      <!-- CHAT FEED: floating messages (online only) -->
-      <div class="chat-feed" id="chat-feed"></div>
     </div>
     <button class="reset-btn" id="reset-btn" aria-label="New game">↺</button>
     <div class="score-bar" id="score-bar">
@@ -487,13 +477,14 @@
       <button class="react-btn" data-emoji="😤" aria-label="Grr">😤</button>
       <button class="react-btn" data-emoji="💀" aria-label="Skull">💀</button>
     </div>
-    <!-- CHAT INPUT (online only) -->
+    <!-- VOICE CHAT (online only) -->
     <div class="chat-input-row hidden" id="chat-input-row">
-      <input type="text" class="chat-text-input" id="chat-text-input"
-        placeholder="message…" maxlength="200"
-        autocomplete="off" autocorrect="on" spellcheck="true" />
-      <button class="chat-send-btn" id="chat-send-btn" aria-label="Send">↑</button>
+      <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">
+        <span class="ptt-dot"></span>mic
+      </button>
+      <span class="ptt-hint" id="ptt-hint">hold to talk</span>
     </div>
+    <audio id="remote-audio" autoplay playsinline style="display:none"></audio>
   </div>
 
   <div class="turn-dot bottom" id="dot-x"></div>
@@ -976,38 +967,69 @@
   }
 
   // ════════════════════════════════════════════════════════════
-  // CHAT
+  // VOICE CHAT (push to talk)
   // ════════════════════════════════════════════════════════════
-  function appendChatMsg(text, mine) {
-    const feed = document.getElementById('chat-feed');
-    const myRole = net.myRole || 'X';
-    const theirRole = myRole === 'X' ? 'O' : 'X';
+  let localStream = null, pttCall = null;
 
-    const bubble = document.createElement('div');
-    bubble.className = 'cbf' + (mine ? ' mine' : '');
-
-    const who = document.createElement('div');
-    who.className = 'cbf-who';
-    who.textContent = mine ? myRole + ' · you' : theirRole + ' · them';
-
-    bubble.appendChild(who);
-    bubble.appendChild(document.createTextNode(text));
-    feed.appendChild(bubble);
-
-    setTimeout(() => bubble.remove(), 10000);
+  async function initVoice() {
+    if (localStream) return true;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      localStream.getAudioTracks().forEach(t => t.enabled = false);
+      return true;
+    } catch(e) { return false; }
   }
 
-  function sendChat() {
-    const input = document.getElementById('chat-text-input');
-    const text = input.value.trim().slice(0, 200);
-    if (!text || net.mode === 'local' || !net.conn || !net.conn.open) return;
-    appendChatMsg(text, true);
-    sendNet({ type: 'chat', text });
-    input.value = '';
+  function hookVoiceCall(call) {
+    pttCall = call;
+    call.on('stream', remoteStream => {
+      const audio = document.getElementById('remote-audio');
+      audio.srcObject = remoteStream;
+    });
+    call.on('close', () => { pttCall = null; });
+    call.on('error', () => { pttCall = null; });
   }
 
-  function resetChat() {
-    document.getElementById('chat-feed').innerHTML = '';
+  function startVoice() {
+    if (!net.peer) return;
+    if (net.mode === 'guest') {
+      net.peer.on('call', call => {
+        initVoice().then(ok => {
+          call.answer(ok ? localStream : undefined);
+          hookVoiceCall(call);
+        });
+      });
+    } else if (net.mode === 'host') {
+      initVoice().then(ok => {
+        if (!ok || !net.conn || !net.conn.open) return;
+        const call = net.peer.call(net.conn.peer, localStream);
+        if (call) hookVoiceCall(call);
+      });
+    }
+  }
+
+  function stopVoice() {
+    try { if (pttCall) pttCall.close(); } catch(e) {}
+    pttCall = null;
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    setPttActive(false);
+    setThemTalking(false);
+  }
+
+  function setPttActive(on) {
+    const btn = document.getElementById('ptt-btn');
+    const hint = document.getElementById('ptt-hint');
+    if (!btn) return;
+    btn.classList.toggle('active', on);
+    if (hint && !hint.classList.contains('them')) hint.textContent = on ? 'talking…' : 'hold to talk';
+    if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = on);
+  }
+
+  function setThemTalking(on) {
+    const hint = document.getElementById('ptt-hint');
+    if (!hint || document.getElementById('ptt-btn')?.classList.contains('active')) return;
+    if (on) { hint.textContent = '● them'; hint.classList.add('them'); }
+    else     { hint.textContent = 'hold to talk'; hint.classList.remove('them'); }
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1288,7 +1310,7 @@
     if(data.type==='move'&&typeof data.idx==='number') move(data.idx,true);
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
-    if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
+    if(data.type==='ptt') setThemTalking(!!data.on);
     if(data.type==='series-reset') resetSeries(true);
   }
 
@@ -1313,7 +1335,7 @@
     document.getElementById('online-badge').classList.remove('hidden');
     document.getElementById('reaction-bar').classList.remove('hidden');
     document.getElementById('chat-input-row').classList.remove('hidden');
-    resetChat();
+    startVoice();
     updateBadge('connected');
     startPing();
     updateDots();
@@ -1329,7 +1351,7 @@
     document.getElementById('online-badge').classList.add('hidden');
     document.getElementById('reaction-bar').classList.add('hidden');
     document.getElementById('chat-input-row').classList.add('hidden');
-    resetChat();
+    stopVoice();
     G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0,D:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -1358,15 +1380,30 @@
   }
 
   // ════════════════════════════════════════════════════════════
-  // REACTION & CHAT EVENTS
+  // REACTION & PTT EVENTS
   // ════════════════════════════════════════════════════════════
   document.querySelectorAll('.react-btn[data-emoji]').forEach(btn => {
     btn.addEventListener('click', () => sendReaction(btn.dataset.emoji));
   });
-  document.getElementById('chat-send-btn').addEventListener('click', sendChat);
-  document.getElementById('chat-text-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
-  });
+
+  const pttBtn = document.getElementById('ptt-btn');
+  function pttPress(e) {
+    e.preventDefault();
+    if (net.mode === 'local' || !localStream) return;
+    setPttActive(true);
+    sendNet({ type: 'ptt', on: true });
+  }
+  function pttRelease(e) {
+    e.preventDefault();
+    setPttActive(false);
+    sendNet({ type: 'ptt', on: false });
+  }
+  pttBtn.addEventListener('mousedown',  pttPress);
+  pttBtn.addEventListener('mouseup',    pttRelease);
+  pttBtn.addEventListener('mouseleave', pttRelease);
+  pttBtn.addEventListener('touchstart', pttPress,   { passive: false });
+  pttBtn.addEventListener('touchend',   pttRelease, { passive: false });
+  pttBtn.addEventListener('touchcancel',pttRelease, { passive: false });
 
   // ════════════════════════════════════════════════════════════
   // LOBBY EVENTS
