@@ -340,6 +340,17 @@
     .shake { animation: inputShake 0.35s ease; }
     .join-error { font-size: 12px; color: rgba(232,99,90,0.75); margin-bottom: 12px; margin-top: -2px; min-height: 16px; }
     .join-error.hidden { visibility: hidden; }
+    .nick-input {
+      width: 100%; padding: 13px 16px; border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05);
+      color: white; font-size: 18px; font-weight: 600;
+      font-family: inherit; text-align: center; letter-spacing: 0.04em;
+      outline: none; caret-color: var(--o); transition: border-color 150ms; margin-bottom: 10px;
+    }
+    .nick-input:focus { border-color: rgba(91,158,245,0.50); }
+    .nick-input::placeholder { color: rgba(255,255,255,0.16); }
+    .nick-skip { background: none; border: none; color: rgba(255,255,255,0.28); font-size: 12px; font-family: inherit; cursor: pointer; padding: 8px; letter-spacing: 0.04em; transition: color 140ms; margin-top: 4px; }
+    .nick-skip:hover { color: rgba(255,255,255,0.58); }
 
     /* ═══════════════════════════════════════ ONLINE BADGE ═══ */
     .online-badge {
@@ -418,25 +429,44 @@
       100% { transform: translate(-50%, -110px) scale(0.75); opacity: 0; }
     }
 
-    /* CHAT LOG */
-    .chat-log {
-      width: min(88vw, calc(100dvh - 200px), 520px);
-      max-height: 96px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;
-      scrollbar-width: none;
+    /* CHAT LOG — kept in DOM but always hidden; messages appear as floating overlays */
+    .chat-log { display: none; }
+
+    /* FLOATING CHAT MESSAGES */
+    .floating-msg {
+      position: fixed;
+      left: 50%;
+      bottom: 28%;
+      z-index: 150;
+      pointer-events: none;
+      max-width: min(80vw, 260px);
+      padding: 7px 12px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      line-height: 1.4;
+      word-break: break-word;
+      animation: floatMsgRise 15s ease-out forwards;
     }
-    .chat-log::-webkit-scrollbar { display: none; }
-    .chat-log.hidden { display: none; }
-    .chat-msg {
-      font-size: 11px; letter-spacing: 0.04em; line-height: 1.4;
-      padding: 5px 10px; border-radius: 3px; max-width: 78%; word-break: break-word;
+    .floating-msg.mine {
+      background: rgba(91,158,245,0.18);
+      color: rgba(255,255,255,0.82);
+      border: 1px solid rgba(91,158,245,0.28);
     }
-    .chat-msg.mine {
-      align-self: flex-end; background: rgba(91,158,245,0.14);
-      color: rgba(255,255,255,0.75); border: 1px solid rgba(91,158,245,0.20);
+    .floating-msg.theirs {
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.68);
+      border: 1px solid rgba(255,255,255,0.12);
     }
-    .chat-msg.theirs {
-      align-self: flex-start; background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.60); border: 1px solid rgba(255,255,255,0.10);
+    .floating-msg-name {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.10em;
+      text-transform: uppercase; opacity: 0.55; margin-bottom: 3px;
+    }
+    @keyframes floatMsgRise {
+      0%   { transform: translateX(calc(-50% + var(--ox,0px))) translateY(0px);    opacity: 0; }
+      6%   { transform: translateX(calc(-50% + var(--ox,0px))) translateY(-10px);  opacity: 1; }
+      82%  { opacity: 0.80; }
+      100% { transform: translateX(calc(-50% + var(--ox,0px))) translateY(-220px); opacity: 0; }
     }
 
     /* VOICE + TEXT CHAT */
@@ -516,6 +546,16 @@
       <div class="lobby-spinner"></div>
       <div class="lobby-hint">waiting for someone to join…</div>
       <button class="lbtn-text" id="btn-cancel-create">cancel</button>
+    </div>
+
+    <div id="ls-nickname" class="ls hidden">
+      <div class="lobby-label">choose a nickname</div>
+      <input type="text" id="nick-input" class="nick-input"
+        maxlength="20" placeholder="your name…"
+        autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="lbtn primary" id="btn-nick-continue">continue</button>
+      <button class="nick-skip" id="btn-nick-skip">skip → random name</button>
+      <button class="lbtn-text" id="btn-nick-back">back</button>
     </div>
 
     <div id="ls-join" class="ls hidden">
@@ -676,6 +716,47 @@
   let net = { mode:'local', peer:null, conn:null, myRole:null, code:null, reconnecting:false };
   let convPromptTimer = null; // pending conversation-prompt timeout (cleared on restart)
   let wheelRot = 0;           // cumulative spin-wheel rotation (degrees)
+
+  // ════════════════════════════════════════════════════════════
+  // NICKNAMES
+  // ════════════════════════════════════════════════════════════
+  let myNickname = '';
+  let theirNickname = '';
+  let _pendingLobbyAction = null; // 'create' | 'join'
+  let _floatMsgCount = 0;         // stagger offset counter
+
+  const NICK_ADJ = ['Swift','Bold','Quiet','Bright','Dark','Clever','Calm','Sleek','Odd','Sharp','Lucky','Silver','Fuzzy','Quick','Stray','Wild'];
+  const NICK_NOUN = ['Fox','Pawn','Rook','Cloud','Ghost','Stone','Spark','Wolf','Sage','Crow','Pike','Hawk','Echo','Monk','Dusk','Cub'];
+
+  function generateRandomNickname() {
+    const adj  = NICK_ADJ[Math.floor(Math.random() * NICK_ADJ.length)];
+    const noun = NICK_NOUN[Math.floor(Math.random() * NICK_NOUN.length)];
+    return adj + noun;
+  }
+
+  function showNicknameScreen(action) {
+    _pendingLobbyAction = action;
+    document.getElementById('nick-input').value = '';
+    showLS('ls-nickname');
+    setTimeout(() => document.getElementById('nick-input').focus(), 80);
+  }
+
+  function commitNickname(name) {
+    myNickname = name || generateRandomNickname();
+    const action = _pendingLobbyAction;
+    _pendingLobbyAction = null;
+    if (action === 'create') {
+      createGame();
+    } else if (action === 'join') {
+      showLS('ls-join');
+      document.getElementById('join-error').classList.add('hidden');
+      document.getElementById('code-input').value = '';
+      setTimeout(() => document.getElementById('code-input').focus(), 80);
+    } else if (action === 'join-auto') {
+      showLS('ls-join');
+      setTimeout(joinGame, 80);
+    }
+  }
 
   // ════════════════════════════════════════════════════════════
   // CONVERSATION PROMPT HELPERS
@@ -1340,14 +1421,32 @@
   // ════════════════════════════════════════════════════════════
   // TEXT CHAT
   // ════════════════════════════════════════════════════════════
-  function appendChatMsg(text, isMine) {
-    const log = document.getElementById('chat-log');
-    if (!log) return;
-    const msg = document.createElement('div');
-    msg.className = 'chat-msg ' + (isMine ? 'mine' : 'theirs');
-    msg.textContent = text;
-    log.appendChild(msg);
-    log.scrollTop = log.scrollHeight;
+  function appendChatMsg(text, isMine, senderName) {
+    const el = document.createElement('div');
+    el.className = 'floating-msg ' + (isMine ? 'mine' : 'theirs');
+
+    const name = senderName || (isMine ? myNickname : theirNickname);
+    if (name) {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'floating-msg-name';
+      nameEl.textContent = name;
+      el.appendChild(nameEl);
+    }
+
+    const textEl = document.createElement('div');
+    textEl.textContent = text;
+    el.appendChild(textEl);
+
+    // Random horizontal offset so concurrent messages don't perfectly overlap
+    const ox = (Math.random() - 0.5) * 60;
+    el.style.setProperty('--ox', ox + 'px');
+    // Slight vertical stagger based on count so rapid messages don't stack exactly
+    const yExtra = (_floatMsgCount % 4) * 38;
+    el.style.bottom = (28 + yExtra / 10) + '%';
+    _floatMsgCount++;
+
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 15500);
   }
 
   function sendChatMsg() {
@@ -1356,7 +1455,7 @@
     const text = input.value.trim().slice(0, 200);
     if (!text || net.mode === 'local' || !net.conn || !net.conn.open) return;
     appendChatMsg(text, true);
-    sendNet({ type: 'chat', text });
+    sendNet({ type: 'chat', text, name: myNickname });
     input.value = '';
     document.getElementById('ptt-btn')?.classList.remove('hidden');
     document.getElementById('chat-send-btn')?.classList.add('hidden');
@@ -1435,6 +1534,7 @@
     net.reconnecting = false;
     updateBadge('connected');
     startPing();
+    sendNet({ type: 'nickname', name: myNickname });
     if (net.mode === 'host') {
       // Re-send role then current board state so guest can sync.
       sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
@@ -1495,7 +1595,7 @@
   }
 
   const lobbyEl = document.getElementById('lobby');
-  const LS_IDS  = ['ls-home','ls-waiting','ls-join','ls-connecting'];
+  const LS_IDS  = ['ls-home','ls-waiting','ls-nickname','ls-join','ls-connecting'];
 
   function showLS(id) {
     LS_IDS.forEach(s=>{const el=document.getElementById(s);if(el)el.classList.toggle('hidden',s!==id);});
@@ -1613,6 +1713,7 @@
   function onConnOpen() {
     sessionStorage.removeItem('ticto_host');
     if (net.mode === 'host') sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
+    sendNet({ type: 'nickname', name: myNickname });
     hideLobby(); startOnlineGame();
     initVoiceChat();
   }
@@ -1627,7 +1728,8 @@
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
     if(data.type==='ptt'&&typeof data.on==='boolean') setThemTalking(data.on);
-    if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
+    if(data.type==='nickname'&&typeof data.name==='string') { theirNickname=data.name.slice(0,20); return; }
+    if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false, typeof data.name==='string'?data.name.slice(0,20):theirNickname);
     if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
       const ov = document.createElement('div'); ov.className = 'wheel-overlay';
@@ -1660,7 +1762,6 @@
     const ov=document.querySelector('.result-overlay');if(ov)ov.remove();
     document.getElementById('online-badge').classList.remove('hidden');
     document.getElementById('reaction-bar').classList.remove('hidden');
-    document.getElementById('chat-log').classList.remove('hidden');
     document.getElementById('chat-input-row').classList.remove('hidden');
     startVoice();
     updateBadge('connected');
@@ -1679,7 +1780,7 @@
     document.getElementById('online-badge').classList.add('hidden');
     document.getElementById('reaction-bar').classList.add('hidden');
     document.getElementById('chat-input-row').classList.add('hidden');
-    document.getElementById('chat-log').classList.add('hidden');
+    theirNickname = ''; _floatMsgCount = 0;
     G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0},rounds:{X:0,O:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -1754,12 +1855,21 @@
   document.getElementById('btn-local').addEventListener('click',()=>{
     net.mode='local'; hideLobby(); updateDots();
   });
-  document.getElementById('btn-create').addEventListener('click', () => createGame());
-  document.getElementById('btn-join').addEventListener('click',()=>{
-    showLS('ls-join');
-    document.getElementById('join-error').classList.add('hidden');
-    document.getElementById('code-input').value='';
-    setTimeout(()=>document.getElementById('code-input').focus(),80);
+  document.getElementById('btn-create').addEventListener('click', () => showNicknameScreen('create'));
+  document.getElementById('btn-join').addEventListener('click', () => showNicknameScreen('join'));
+  document.getElementById('btn-nick-back').addEventListener('click', () => {
+    _pendingLobbyAction = null; showLS('ls-home');
+  });
+  document.getElementById('btn-nick-continue').addEventListener('click', () => {
+    const val = document.getElementById('nick-input').value.trim().slice(0, 20);
+    commitNickname(val || null);
+  });
+  document.getElementById('btn-nick-skip').addEventListener('click', () => commitNickname(null));
+  document.getElementById('nick-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = document.getElementById('nick-input').value.trim().slice(0, 20);
+      commitNickname(val || null);
+    }
   });
   document.getElementById('btn-connect').addEventListener('click', joinGame);
   document.getElementById('btn-cancel-create').addEventListener('click',()=>{
@@ -1826,8 +1936,11 @@
     document.getElementById('code-input').value = code.toUpperCase();
     function tryJoin() {
       if (typeof Peer !== 'undefined') {
-        showLS('ls-join');
-        setTimeout(joinGame, 80);
+        // Show nickname screen first, then auto-join
+        _pendingLobbyAction = 'join-auto';
+        document.getElementById('nick-input').value = '';
+        showLS('ls-nickname');
+        setTimeout(() => document.getElementById('nick-input').focus(), 80);
       } else {
         setTimeout(tryJoin, 200);
       }
