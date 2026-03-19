@@ -441,57 +441,46 @@
 
     /* VOICE + TEXT CHAT */
     .chat-input-row {
-      display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+      display: flex; flex-direction: column; align-items: stretch; gap: 5px;
       width: min(88vw, calc(100dvh - 200px), 520px);
     }
     .chat-input-row.hidden { display: none; }
-    .chat-text-row {
-      display: flex; gap: 6px; align-items: center;
-    }
-    .chat-text-input {
-      flex: 1; height: 34px; padding: 0 10px; border-radius: 3px;
-      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.80); font-size: 12px; font-family: inherit;
-      outline: none; letter-spacing: 0.04em;
+    .chat-field {
+      display: flex; align-items: stretch;
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 3px;
+      background: rgba(255,255,255,0.05); overflow: hidden;
       transition: border-color 100ms;
     }
+    .chat-field:focus-within { border-color: rgba(255,255,255,0.30); }
+    .chat-text-input {
+      flex: 1; height: 34px; padding: 0 10px;
+      border: none; background: transparent;
+      color: rgba(255,255,255,0.80); font-size: 12px; font-family: inherit;
+      outline: none; letter-spacing: 0.04em;
+    }
     .chat-text-input::placeholder { color: rgba(255,255,255,0.22); }
-    .chat-text-input:focus { border-color: rgba(255,255,255,0.30); }
-    .chat-send-btn {
-      width: 34px; height: 34px; border-radius: 3px; flex-shrink: 0;
-      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.55); font-size: 16px;
+    .chat-icon-btn {
+      width: 34px; flex-shrink: 0;
+      border: none; border-left: 1px solid rgba(255,255,255,0.10);
+      background: transparent;
+      color: rgba(255,255,255,0.38); font-size: 16px; font-family: inherit;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 80ms;
-    }
-    .chat-send-btn:hover { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.85); }
-    .chat-ptt-row { display: flex; align-items: center; gap: 10px; }
-    .ptt-btn {
-      width: 110px; height: 38px; border-radius: 3px;
-      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.38); font-size: 12px; font-family: inherit;
-      cursor: pointer; letter-spacing: 0.10em; text-transform: uppercase;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; transition: background 80ms, color 80ms;
       -webkit-tap-highlight-color: transparent; user-select: none;
-      transition: border-color 100ms, background 100ms, color 100ms, box-shadow 100ms;
     }
-    .ptt-btn:hover { border-color: rgba(255,255,255,0.24); color: rgba(255,255,255,0.60); }
-    .ptt-btn.active {
-      background: rgba(74,222,128,0.10); border-color: rgba(74,222,128,0.50);
-      color: rgba(74,222,128,0.92); box-shadow: 0 0 12px rgba(74,222,128,0.22);
+    .chat-icon-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.70); }
+    .chat-icon-btn.hidden { display: none; }
+    .chat-mic-btn.active {
+      background: rgba(74,222,128,0.10); color: rgba(74,222,128,0.92);
       animation: pttPulse 0.75s ease-in-out infinite;
-    }
-    @keyframes pttPulse { 0%,100%{box-shadow:0 0 8px rgba(74,222,128,0.18)} 50%{box-shadow:0 0 20px rgba(74,222,128,0.42)} }
-    .ptt-dot {
-      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-      background: currentColor; opacity: 0.70;
     }
     .ptt-hint {
       font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: rgba(255,255,255,0.18); transition: color 150ms;
+      color: rgba(255,255,255,0.18); transition: color 150ms; text-align: center;
     }
     .ptt-hint.them { color: rgba(91,158,245,0.65); animation: pttThemBlink 0.55s steps(1) infinite; }
     @keyframes pttThemBlink { 0%,49%{opacity:1} 50%,100%{opacity:0.15} }
+    @keyframes pttPulse { 0%,100%{box-shadow:0 0 8px rgba(74,222,128,0.18)} 50%{box-shadow:0 0 20px rgba(74,222,128,0.42)} }
 
     /* SERIES BANNER (inside result overlay) */
     .series-banner {
@@ -601,18 +590,21 @@
     <div class="chat-log hidden" id="chat-log"></div>
     <!-- VOICE + TEXT CHAT (online only) -->
     <div class="chat-input-row hidden" id="chat-input-row">
-      <div class="chat-text-row">
+      <div class="chat-field">
         <input class="chat-text-input" id="chat-text-input" type="text"
           placeholder="message…" maxlength="200"
           autocomplete="off" autocorrect="off" spellcheck="false" />
-        <button class="chat-send-btn" id="chat-send-btn" aria-label="Send">↑</button>
-      </div>
-      <div class="chat-ptt-row">
-        <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">
-          <span class="ptt-dot"></span>mic
+        <button class="chat-icon-btn chat-mic-btn" id="ptt-btn" aria-label="Hold to talk">
+          <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4.25" y="0.75" width="5.5" height="8" rx="2.75" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M1.5 7.5C1.5 10.8 12.5 10.8 12.5 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="7" y1="11" x2="7" y2="14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="4.5" y1="14.5" x2="9.5" y2="14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
         </button>
-        <span class="ptt-hint" id="ptt-hint">hold to talk</span>
+        <button class="chat-icon-btn chat-send-btn hidden" id="chat-send-btn" aria-label="Send">↑</button>
       </div>
+      <span class="ptt-hint" id="ptt-hint">hold to talk</span>
     </div>
     <audio id="remote-audio" autoplay playsinline style="display:none"></audio>
   </div>
@@ -1366,6 +1358,8 @@
     appendChatMsg(text, true);
     sendNet({ type: 'chat', text });
     input.value = '';
+    document.getElementById('ptt-btn')?.classList.remove('hidden');
+    document.getElementById('chat-send-btn')?.classList.add('hidden');
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1740,9 +1734,19 @@
   pttBtn.addEventListener('touchcancel',pttRelease, { passive: false });
 
   document.getElementById('chat-send-btn').addEventListener('click', sendChatMsg);
-  document.getElementById('chat-text-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); sendChatMsg(); }
-  });
+  (function () {
+    const input   = document.getElementById('chat-text-input');
+    const micBtn  = document.getElementById('ptt-btn');
+    const sendBtn = document.getElementById('chat-send-btn');
+    input.addEventListener('input', () => {
+      const hasText = input.value.length > 0;
+      micBtn.classList.toggle('hidden', hasText);
+      sendBtn.classList.toggle('hidden', !hasText);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); sendChatMsg(); }
+    });
+  })();
 
   // ════════════════════════════════════════════════════════════
   // LOBBY EVENTS
