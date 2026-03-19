@@ -170,9 +170,9 @@
     /* ═══════════════════════════════════ SPIN WHEEL ══════ */
 .wheel-overlay {
       position: fixed; inset: 0; background: rgba(6,8,16,0.96);
-      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 28px; z-index: 15; animation: overlayFadeIn 260ms ease-out;
+      will-change: opacity;
     }
     .wheel-close-btn {
       position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
@@ -198,6 +198,7 @@
       box-shadow: 0 0 0 4px rgba(255,255,255,0.10), 0 8px 40px rgba(0,0,0,0.55);
       transition: transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99);
       position: relative; overflow: hidden;
+      will-change: transform;
     }
     .wheel-disk::after {
       content: ''; position: absolute; inset: 0; border-radius: 50%;
@@ -239,6 +240,7 @@
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       background: rgba(6,8,16,0.88); z-index: 3;
       animation: overlayFadeIn 220ms ease-out;
+      will-change: opacity;
     }
     .wheel-result-card {
       background: rgba(8,10,22,0.98); border-radius: 4px; padding: 32px 28px 26px;
@@ -1188,7 +1190,10 @@
       wheelRot += 5 * 360 + (delta === 0 ? 360 : delta);
       disk.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99)';
       disk.style.transform = `rotate(${wheelRot}deg)`;
-      setTimeout(() => showWheelResult(ov, pool[idx], rotated, c1), 3620);
+      setTimeout(() => {
+        disk.style.willChange = 'auto';
+        showWheelResult(ov, pool[idx], rotated, c1);
+      }, 3620);
     });
 
     wheelSetContent(ov, wrap, typeLabel, spinBtn);
