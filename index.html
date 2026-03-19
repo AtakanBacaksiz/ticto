@@ -237,7 +237,7 @@
     /* Result card — straight by default; add --rotated for loser's offline result */
     .wheel-result-overlay {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(6,8,16,0.82); backdrop-filter: blur(6px); z-index: 3;
+      background: rgba(6,8,16,0.88); z-index: 3;
       animation: overlayFadeIn 220ms ease-out;
     }
     .wheel-result-card {
@@ -245,7 +245,6 @@
       max-width: min(300px,82vw); text-align: center;
       border: 1.5px solid rgba(255,255,255,0.10);
       box-shadow: 0 20px 64px rgba(0,0,0,0.75);
-      backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
       animation: wheelCardPopStraight 400ms cubic-bezier(0.34,1.56,0.64,1) both;
     }
     @keyframes wheelCardPopStraight {
@@ -419,12 +418,54 @@
       100% { transform: translate(-50%, -110px) scale(0.75); opacity: 0; }
     }
 
-    /* VOICE CHAT — push to talk */
+    /* CHAT LOG */
+    .chat-log {
+      width: min(88vw, calc(100dvh - 200px), 520px);
+      max-height: 96px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;
+      scrollbar-width: none;
+    }
+    .chat-log::-webkit-scrollbar { display: none; }
+    .chat-log.hidden { display: none; }
+    .chat-msg {
+      font-size: 11px; letter-spacing: 0.04em; line-height: 1.4;
+      padding: 5px 10px; border-radius: 3px; max-width: 78%; word-break: break-word;
+    }
+    .chat-msg.mine {
+      align-self: flex-end; background: rgba(91,158,245,0.14);
+      color: rgba(255,255,255,0.75); border: 1px solid rgba(91,158,245,0.20);
+    }
+    .chat-msg.theirs {
+      align-self: flex-start; background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.60); border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    /* VOICE + TEXT CHAT */
     .chat-input-row {
-      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      display: flex; flex-direction: column; align-items: stretch; gap: 6px;
       width: min(88vw, calc(100dvh - 200px), 520px);
     }
     .chat-input-row.hidden { display: none; }
+    .chat-text-row {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .chat-text-input {
+      flex: 1; height: 34px; padding: 0 10px; border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.80); font-size: 12px; font-family: inherit;
+      outline: none; letter-spacing: 0.04em;
+      transition: border-color 100ms;
+    }
+    .chat-text-input::placeholder { color: rgba(255,255,255,0.22); }
+    .chat-text-input:focus { border-color: rgba(255,255,255,0.30); }
+    .chat-send-btn {
+      width: 34px; height: 34px; border-radius: 3px; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.55); font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 80ms;
+    }
+    .chat-send-btn:hover { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.85); }
+    .chat-ptt-row { display: flex; align-items: center; gap: 10px; }
     .ptt-btn {
       width: 110px; height: 38px; border-radius: 3px;
       border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
@@ -556,12 +597,22 @@
       <button class="react-btn" data-emoji="😤" aria-label="Grr">😤</button>
       <button class="react-btn" data-emoji="💀" aria-label="Skull">💀</button>
     </div>
-    <!-- VOICE CHAT (online only) -->
+    <!-- CHAT LOG (online only) -->
+    <div class="chat-log hidden" id="chat-log"></div>
+    <!-- VOICE + TEXT CHAT (online only) -->
     <div class="chat-input-row hidden" id="chat-input-row">
-      <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">
-        <span class="ptt-dot"></span>mic
-      </button>
-      <span class="ptt-hint" id="ptt-hint">hold to talk</span>
+      <div class="chat-text-row">
+        <input class="chat-text-input" id="chat-text-input" type="text"
+          placeholder="message…" maxlength="200"
+          autocomplete="off" autocorrect="off" spellcheck="false" />
+        <button class="chat-send-btn" id="chat-send-btn" aria-label="Send">↑</button>
+      </div>
+      <div class="chat-ptt-row">
+        <button class="ptt-btn" id="ptt-btn" aria-label="Hold to talk">
+          <span class="ptt-dot"></span>mic
+        </button>
+        <span class="ptt-hint" id="ptt-hint">hold to talk</span>
+      </div>
     </div>
     <audio id="remote-audio" autoplay playsinline style="display:none"></audio>
   </div>
@@ -1295,6 +1346,29 @@
   }
 
   // ════════════════════════════════════════════════════════════
+  // TEXT CHAT
+  // ════════════════════════════════════════════════════════════
+  function appendChatMsg(text, isMine) {
+    const log = document.getElementById('chat-log');
+    if (!log) return;
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg ' + (isMine ? 'mine' : 'theirs');
+    msg.textContent = text;
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function sendChatMsg() {
+    const input = document.getElementById('chat-text-input');
+    if (!input) return;
+    const text = input.value.trim().slice(0, 200);
+    if (!text || net.mode === 'local' || !net.conn || !net.conn.open) return;
+    appendChatMsg(text, true);
+    sendNet({ type: 'chat', text });
+    input.value = '';
+  }
+
+  // ════════════════════════════════════════════════════════════
   // ROUNDS (ROUND_GAMES games per round)
   // ════════════════════════════════════════════════════════════
   function endRound(fromNet=false) {
@@ -1539,6 +1613,9 @@
     setTimeout(()=>document.getElementById('code-input').focus(),80);
   }
 
+  function initVoiceChat() { startVoice(); }
+  function teardownVoiceChat() { stopVoice(); }
+
   function onConnOpen() {
     sessionStorage.removeItem('ticto_host');
     if (net.mode === 'host') sendNet({ type: 'role', role: net.myRole === 'X' ? 'O' : 'X' });
@@ -1555,6 +1632,7 @@
     if(data.type==='move'&&typeof data.idx==='number') move(data.idx,true);
     if(data.type==='restart') restart(true);
     if(data.type==='reaction'&&typeof data.emoji==='string') showFloatingReaction(data.emoji);
+    if(data.type==='ptt'&&typeof data.on==='boolean') setThemTalking(data.on);
     if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false);
     if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
@@ -1588,6 +1666,7 @@
     const ov=document.querySelector('.result-overlay');if(ov)ov.remove();
     document.getElementById('online-badge').classList.remove('hidden');
     document.getElementById('reaction-bar').classList.remove('hidden');
+    document.getElementById('chat-log').classList.remove('hidden');
     document.getElementById('chat-input-row').classList.remove('hidden');
     startVoice();
     updateBadge('connected');
@@ -1605,7 +1684,8 @@
     net={mode:'local',peer:null,conn:null,myRole:null,code:null,reconnecting:false};
     document.getElementById('online-badge').classList.add('hidden');
     document.getElementById('reaction-bar').classList.add('hidden');
-    document.getElementById('ptt-row').classList.add('hidden');
+    document.getElementById('chat-input-row').classList.add('hidden');
+    document.getElementById('chat-log').classList.add('hidden');
     G={board:Array(9).fill(null),turn:'X',scores:{X:0,O:0},rounds:{X:0,O:0},over:false,winner:null,winIdx:-1,placementOrder:[]};
     clearOldestMarker();
     cellEls.forEach(c=>{c.classList.remove('filled','win-cell');c.innerHTML='';});
@@ -1659,26 +1739,10 @@
   pttBtn.addEventListener('touchend',   pttRelease, { passive: false });
   pttBtn.addEventListener('touchcancel',pttRelease, { passive: false });
 
-  (function () {
-    const btn = document.getElementById('ptt-btn');
-    function pttStart(e) {
-      e.preventDefault();
-      if (!voiceStream) return;
-      voiceStream.getAudioTracks().forEach(t => { t.enabled = true; });
-      btn.classList.add('speaking');
-    }
-    function pttStop() {
-      if (!voiceStream) return;
-      voiceStream.getAudioTracks().forEach(t => { t.enabled = false; });
-      btn.classList.remove('speaking');
-    }
-    btn.addEventListener('mousedown',  pttStart);
-    btn.addEventListener('touchstart', pttStart, { passive: false });
-    btn.addEventListener('mouseup',    pttStop);
-    btn.addEventListener('mouseleave', pttStop);
-    btn.addEventListener('touchend',   pttStop);
-    btn.addEventListener('touchcancel',pttStop);
-  })();
+  document.getElementById('chat-send-btn').addEventListener('click', sendChatMsg);
+  document.getElementById('chat-text-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChatMsg(); }
+  });
 
   // ════════════════════════════════════════════════════════════
   // LOBBY EVENTS
