@@ -204,7 +204,9 @@
     .wheel-disk::after {
       content: ''; position: absolute; inset: 0; border-radius: 50%;
       background: repeating-conic-gradient(rgba(0,0,0,0.18) 0deg 1.5deg, transparent 1.5deg 45deg);
+      pointer-events: none;
     }
+    .wheel-disk.spinning::after { display: none; }
     .wheel-hub {
       position: absolute; width: 48px; height: 48px; border-radius: 50%;
       background: #060810; border: 3px solid rgba(255,255,255,0.18); z-index: 2;
@@ -241,6 +243,7 @@
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       background: rgba(6,8,16,0.88); z-index: 3;
       animation: overlayFadeIn 220ms ease-out;
+      contain: layout paint;
     }
     .wheel-result-card {
       background: rgba(8,10,22,0.98); border-radius: 4px; padding: 32px 28px 26px;
@@ -248,6 +251,7 @@
       border: 1.5px solid rgba(255,255,255,0.10);
       box-shadow: 0 20px 64px rgba(0,0,0,0.75);
       animation: wheelCardPopStraight 400ms cubic-bezier(0.34,1.56,0.64,1) both;
+      will-change: transform, opacity;
     }
     @keyframes wheelCardPopStraight {
       from { transform: scale(0.65); opacity: 0; }
@@ -1262,6 +1266,7 @@
     spinBtn.className = 'wheel-spin-btn'; spinBtn.textContent = 'SPIN';
     spinBtn.addEventListener('click', () => {
       spinBtn.disabled = true;
+      disk.classList.add('spinning');
       const pool = WHEEL_POOL[type];
       const idx = Math.floor(Math.random() * pool.length);
       // Rotate so segment idx centres under the pointer.
@@ -1271,8 +1276,17 @@
       wheelRot += 5 * 360 + (delta === 0 ? 360 : delta);
       disk.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99)';
       disk.style.transform = `rotate(${wheelRot}deg)`;
-      disk.addEventListener('transitionend', () => { disk.style.willChange = 'auto'; }, { once: true });
-      setTimeout(() => showWheelResult(ov, pool[idx], rotated, c1), 3620);
+      disk.addEventListener('transitionend', () => {
+        disk.classList.remove('spinning');
+        // Delay willChange reset so it doesn't clash with result card appearing
+        setTimeout(() => { disk.style.willChange = 'auto'; }, 400);
+      }, { once: true });
+      setTimeout(() => {
+        // Remove the game result overlay underneath to free GPU/CPU resources
+        const resultOv = document.querySelector('.result-overlay');
+        if (resultOv) resultOv.remove();
+        showWheelResult(ov, pool[idx], rotated, c1);
+      }, 3620);
     });
 
     wheelSetContent(ov, wrap, typeLabel, spinBtn);
