@@ -167,6 +167,8 @@
     .particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; animation: particleFly var(--dur,0.45s) ease-out forwards; }
     @keyframes particleFly { 0%{transform:translate(0,0) scale(1.2);opacity:0.85} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
 
+    body.wheel-active::after { display: none; }
+
     /* ═══════════════════════════════════ SPIN WHEEL ══════ */
 .wheel-overlay {
       position: fixed; inset: 0; background: rgba(6,8,16,0.96);
@@ -1193,6 +1195,11 @@
   function showWheelOverlay(winner) {
     clearTimeout(convPromptTimer);
     document.querySelector('.conv-prompt-overlay')?.remove();
+    // Remove the result overlay — its backdrop-filter:blur is very expensive
+    // and would keep running underneath the wheel during the entire spin.
+    document.querySelector('.result-overlay')?.remove();
+    // Pause the body::after scanline effect to free compositor during spin.
+    document.body.classList.add('wheel-active');
 
     const ov = document.createElement('div');
     ov.className = 'wheel-overlay';
@@ -1200,7 +1207,7 @@
     const closeBtn = document.createElement('div');
     closeBtn.className = 'wheel-close-btn'; closeBtn.textContent = '×';
     closeBtn.setAttribute('role','button');
-    closeBtn.addEventListener('click', () => ov.remove());
+    closeBtn.addEventListener('click', () => { ov.remove(); document.body.classList.remove('wheel-active'); });
     ov.appendChild(closeBtn);
 
     if (net.mode === 'local') {
@@ -1282,9 +1289,6 @@
         setTimeout(() => { disk.style.willChange = 'auto'; }, 400);
       }, { once: true });
       setTimeout(() => {
-        // Remove the game result overlay underneath to free GPU/CPU resources
-        const resultOv = document.querySelector('.result-overlay');
-        if (resultOv) resultOv.remove();
         showWheelResult(ov, pool[idx], rotated, c1);
       }, 3620);
     });
@@ -1311,7 +1315,7 @@
     const okBtn = document.createElement('div');
     okBtn.className = 'wheel-result-ok'; okBtn.textContent = 'Got it! 👍';
     okBtn.setAttribute('role','button');
-    okBtn.addEventListener('click', () => wheelOv.remove());
+    okBtn.addEventListener('click', () => { wheelOv.remove(); document.body.classList.remove('wheel-active'); });
 
     card.append(emojiEl, textEl, okBtn);
     resultOv.appendChild(card);
@@ -1749,10 +1753,12 @@
     if(data.type==='chat'&&typeof data.text==='string') appendChatMsg(data.text.slice(0,200), false, typeof data.name==='string'?data.name.slice(0,20):theirNickname);
     if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
+      document.querySelector('.result-overlay')?.remove();
+      document.body.classList.add('wheel-active');
       const ov = document.createElement('div'); ov.className = 'wheel-overlay';
       const closeBtn = document.createElement('div'); closeBtn.className = 'wheel-close-btn';
       closeBtn.textContent = '×'; closeBtn.setAttribute('role','button');
-      closeBtn.addEventListener('click', () => ov.remove()); ov.appendChild(closeBtn);
+      closeBtn.addEventListener('click', () => { ov.remove(); document.body.classList.remove('wheel-active'); }); ov.appendChild(closeBtn);
       document.body.appendChild(ov);
       showWheelResult(ov, { emoji: data.emoji, text: data.text }, false, data.accent || null);
     }
