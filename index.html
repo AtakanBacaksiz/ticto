@@ -207,13 +207,6 @@
       from { transform: scale(0.65); opacity: 0; }
       to   { transform: scale(1);    opacity: 1; }
     }
-    .dt-result-card--rotated {
-      animation: dtCardPopRot 400ms cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    @keyframes dtCardPopRot {
-      from { transform: rotate(180deg) scale(0.65); opacity: 0; }
-      to   { transform: rotate(180deg) scale(1);    opacity: 1; }
-    }
     .dt-result-emoji { font-size: 42px; margin-bottom: 10px; line-height: 1; }
     .dt-result-text {
       font-size: clamp(15px,4.2vw,18px); color: rgba(255,255,255,0.85);
@@ -1135,36 +1128,33 @@
     closeBtn.addEventListener('click', () => ov.remove());
     ov.appendChild(closeBtn);
 
-    // In local mode, the loser picks; rotated so the winner across the table can read.
-    // In online mode, only the loser sees this and picks.
-    const rotated = net.mode === 'local';
-    dtShowChoice(ov, rotated);
+    dtShowChoice(ov);
 
     document.body.appendChild(ov);
   }
 
   // Loser chooses dare or truth. Winner then asks the question.
-  function dtShowChoice(ov, rotated) {
+  function dtShowChoice(ov) {
     const title = document.createElement('div');
     title.className = 'dt-choice-title'; title.textContent = 'loser picks';
 
     const dareBtn = makeDTChoiceBtn('🎯', 'Dare', 'accept a challenge');
-    dareBtn.addEventListener('click', () => dtShowResult(ov, 'dare', rotated));
+    dareBtn.addEventListener('click', () => dtShowResult(ov, 'dare'));
 
     const truthBtn = makeDTChoiceBtn('❓', 'Truth', 'answer honestly');
-    truthBtn.addEventListener('click', () => dtShowResult(ov, 'truth', rotated));
+    truthBtn.addEventListener('click', () => dtShowResult(ov, 'truth'));
 
     dtSetContent(ov, title, dareBtn, truthBtn);
   }
 
-  // Show a random dare or truth result immediately (no spin).
-  function dtShowResult(ov, type, rotated) {
+  // Show a random dare or truth result immediately.
+  function dtShowResult(ov, type) {
     const pool = DT_POOL[type];
     const item = pool[Math.floor(Math.random() * pool.length)];
     const accent = DT_ACCENT[type];
 
     const card = document.createElement('div');
-    card.className = 'dt-result-card' + (rotated ? ' dt-result-card--rotated' : '');
+    card.className = 'dt-result-card';
     card.style.borderColor = accent + '55';
 
     const typeLabel = document.createElement('div');
