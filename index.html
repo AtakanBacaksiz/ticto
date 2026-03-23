@@ -167,118 +167,65 @@
     .particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; animation: particleFly var(--dur,0.45s) ease-out forwards; }
     @keyframes particleFly { 0%{transform:translate(0,0) scale(1.2);opacity:0.85} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
 
-    body.wheel-active::after { display: none; }
-
-    /* ═══════════════════════════════════ SPIN WHEEL ══════ */
-.wheel-overlay {
+    /* ═══════════════════════════════════ DARE / TRUTH ══════ */
+    .dt-overlay {
       position: fixed; inset: 0; background: rgba(6,8,16,0.96);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 28px; z-index: 15; animation: overlayFadeIn 260ms ease-out;
-      contain: paint;
     }
-    .wheel-close-btn {
+    .dt-close-btn {
       position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
       width: 40px; height: 40px;
       border-radius: 4px; display: flex; align-items: center; justify-content: center;
       border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04);
       color: rgba(255,255,255,0.40); font-size: 20px; cursor: pointer; transition: all 80ms ease-out;
     }
-    .wheel-close-btn:hover { color: rgba(255,255,255,0.80); border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.10); }
-    .wheel-wrap {
-      position: relative; width: clamp(220px,60vw,280px); height: clamp(220px,60vw,280px);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .wheel-ptr {
-      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
-      width: 0; height: 0;
-      border-left: 11px solid transparent; border-right: 11px solid transparent;
-      border-top: 20px solid rgba(255,255,255,0.88);
-      z-index: 2;
-    }
-    .wheel-disk {
-      width: 100%; height: 100%; border-radius: 50%;
-      /* background set dynamically per wheel type */
-      box-shadow: 0 0 0 4px rgba(255,255,255,0.10), 0 8px 40px rgba(0,0,0,0.55);
-      transition: transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99);
-      position: relative;
-      will-change: transform;
-    }
-    .wheel-disk::after {
-      content: ''; position: absolute; inset: 0; border-radius: 50%;
-      background: repeating-conic-gradient(rgba(0,0,0,0.18) 0deg 1.5deg, transparent 1.5deg 45deg);
-      pointer-events: none;
-    }
-    .wheel-disk.spinning::after { display: none; }
-    .wheel-hub {
-      position: absolute; width: 48px; height: 48px; border-radius: 50%;
-      background: #060810; border: 3px solid rgba(255,255,255,0.18); z-index: 2;
-    }
-    /* Choice screens (role / dare-truth) */
-    .wheel-choice-title {
+    .dt-close-btn:hover { color: rgba(255,255,255,0.80); border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.10); }
+    .dt-choice-title {
       font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
       color: rgba(255,255,255,0.35); text-align: center;
     }
-    .wheel-choice-btn {
+    .dt-choice-btn {
       width: min(280px,82vw); padding: 20px 24px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
       cursor: pointer; text-align: center; transition: all 80ms ease-out;
       display: flex; flex-direction: column; align-items: center; gap: 5px;
     }
-    .wheel-choice-btn:hover  { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.35); }
-    .wheel-choice-btn:active { transform: scale(0.97); }
-    .wheel-choice-emoji { font-size: 30px; line-height: 1; }
-    .wheel-choice-label { font-size: 15px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.82); }
-    .wheel-choice-sub   { font-size: 12px; color: rgba(255,255,255,0.38); }
-    .wheel-type-label   { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; }
-    .wheel-spin-btn {
-      padding: 13px 38px; border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.85); font-size: 15px; font-family: inherit;
-      cursor: pointer; transition: all 80ms ease-out;
-      letter-spacing: 0.12em; text-transform: uppercase;
-    }
-    .wheel-spin-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.50); }
-    .wheel-spin-btn:active:not(:disabled) { transform: scale(0.95); }
-    .wheel-spin-btn:disabled { opacity: 0.28; cursor: default; }
-    /* Result card — straight by default; add --rotated for loser's offline result */
-    .wheel-result-overlay {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(6,8,16,0.88); z-index: 3;
-      animation: overlayFadeIn 220ms ease-out;
-      contain: layout paint;
-    }
-    .wheel-result-card {
+    .dt-choice-btn:hover  { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.35); }
+    .dt-choice-btn:active { transform: scale(0.97); }
+    .dt-choice-emoji { font-size: 30px; line-height: 1; }
+    .dt-choice-label { font-size: 15px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.82); }
+    .dt-choice-sub   { font-size: 12px; color: rgba(255,255,255,0.38); }
+    .dt-result-card {
       background: rgba(8,10,22,0.98); border-radius: 4px; padding: 32px 28px 26px;
       max-width: min(300px,82vw); text-align: center;
       border: 1.5px solid rgba(255,255,255,0.10);
       box-shadow: 0 20px 64px rgba(0,0,0,0.75);
-      animation: wheelCardPopStraight 400ms cubic-bezier(0.34,1.56,0.64,1) both;
-      will-change: transform, opacity;
+      animation: dtCardPop 400ms cubic-bezier(0.34,1.56,0.64,1) both;
     }
-    @keyframes wheelCardPopStraight {
+    @keyframes dtCardPop {
       from { transform: scale(0.65); opacity: 0; }
       to   { transform: scale(1);    opacity: 1; }
     }
-    .wheel-result-card--rotated {
-      transform: rotate(180deg);
-      animation: wheelCardPop 400ms cubic-bezier(0.34,1.56,0.64,1) both;
+    .dt-result-card--rotated {
+      animation: dtCardPopRot 400ms cubic-bezier(0.34,1.56,0.64,1) both;
     }
-    @keyframes wheelCardPop {
+    @keyframes dtCardPopRot {
       from { transform: rotate(180deg) scale(0.65); opacity: 0; }
       to   { transform: rotate(180deg) scale(1);    opacity: 1; }
     }
-    .wheel-result-emoji { font-size: 42px; margin-bottom: 10px; line-height: 1; }
-    .wheel-result-text {
+    .dt-result-emoji { font-size: 42px; margin-bottom: 10px; line-height: 1; }
+    .dt-result-text {
       font-size: clamp(15px,4.2vw,18px); color: rgba(255,255,255,0.85);
       line-height: 1.55; margin-bottom: 22px;
     }
-    .wheel-result-ok {
+    .dt-result-ok {
       display: inline-block; padding: 9px 26px; border-radius: 4px;
       border: 1.5px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.70); font-size: 13px; font-family: inherit;
       cursor: pointer; transition: all 80ms ease-out; letter-spacing: 0.06em;
     }
-    .wheel-result-ok:hover { background: rgba(255,255,255,0.16); }
+    .dt-result-ok:hover { background: rgba(255,255,255,0.16); }
 
     /* ═══════════════════════════════════════════ LOBBY ══════ */
     .lobby-overlay {
@@ -723,7 +670,6 @@
   // ════════════════════════════════════════════════════════════
   let net = { mode:'local', peer:null, conn:null, myRole:null, code:null, reconnecting:false };
   let convPromptTimer = null; // pending conversation-prompt timeout (cleared on restart)
-  let wheelRot = 0;           // cumulative spin-wheel rotation (degrees)
 
   // ════════════════════════════════════════════════════════════
   // NICKNAMES
@@ -1127,14 +1073,14 @@
     document.body.appendChild(overlay);
     if(!isDraw) setTimeout(()=>createBurstParticles(overlay,color),120);
     if (!isDraw && (net.mode === 'local' || winner !== net.myRole)) {
-      setTimeout(() => showWheelOverlay(winner), 900);
+      setTimeout(() => showDareTruthOverlay(winner), 900);
     }
   }
 
   // ════════════════════════════════════════════════════════════
-  // SPIN WHEEL
+  // DARE / TRUTH (replaces spin wheel)
   // ════════════════════════════════════════════════════════════
-  const WHEEL_DARE = [
+  const DT_DARE = [
     { emoji:'💪', text:'Do 10 push-ups right now' },
     { emoji:'💃', text:'Do your best dance move for 30 seconds' },
     { emoji:'🖊️', text:'Let the winner draw on your arm' },
@@ -1144,7 +1090,7 @@
     { emoji:'📸', text:'Let the winner pick your next profile photo' },
     { emoji:'🎬', text:'Act out a scene — winner picks the movie' },
   ];
-  const WHEEL_TRUTH = [
+  const DT_TRUTH = [
     { emoji:'😳', text:'Confess your biggest crush' },
     { emoji:'🙈', text:'What\'s the most embarrassing thing you\'ve done this year?' },
     { emoji:'🤫', text:'Tell something you\'ve never told anyone' },
@@ -1154,176 +1100,94 @@
     { emoji:'😨', text:'What\'s your most irrational fear?' },
     { emoji:'🔍', text:'What would your search history reveal about you?' },
   ];
-  const WHEEL_REWARD = [
-    { emoji:'☕', text:'They owe you a coffee date' },
-    { emoji:'🎬', text:'Movie night — your pick' },
-    { emoji:'🍝', text:'They cook you dinner' },
-    { emoji:'🌅', text:'Sunset walk together — their treat' },
-    { emoji:'💆', text:'They owe you a massage' },
-    { emoji:'📍', text:'You choose the next hangout' },
-    { emoji:'🎯', text:'You get to dare them something right now' },
-    { emoji:'🤔', text:'You get to ask them any truth question' },
-  ];
+  const DT_POOL = { dare: DT_DARE, truth: DT_TRUTH };
+  const DT_ACCENT = { dare: '#E74C3C', truth: '#8E44AD' };
 
-  // One color pair (light, dark) per wheel type for alternating segments.
-  const WHEEL_COLORS = {
-    dare:   ['#E74C3C', '#B03A2E'],
-    truth:  ['#8E44AD', '#6C3483'],
-    reward: ['#E67E22', '#B35B10'],
-  };
-  const WHEEL_POOL = { dare: WHEEL_DARE, truth: WHEEL_TRUTH, reward: WHEEL_REWARD };
-
-  // Replace all overlay content (keep the × close button).
-  function wheelSetContent(ov, ...nodes) {
-    const close = ov.querySelector('.wheel-close-btn');
+  function dtSetContent(ov, ...nodes) {
+    const close = ov.querySelector('.dt-close-btn');
     while (ov.firstChild) ov.removeChild(ov.firstChild);
     if (close) ov.appendChild(close);
     nodes.forEach(n => ov.appendChild(n));
   }
 
-  function makeWheelChoiceBtn(emoji, label, sub) {
+  function makeDTChoiceBtn(emoji, label, sub) {
     const btn = document.createElement('div');
-    btn.className = 'wheel-choice-btn'; btn.setAttribute('role','button');
-    const eEl = document.createElement('div'); eEl.className = 'wheel-choice-emoji'; eEl.textContent = emoji;
-    const lEl = document.createElement('div'); lEl.className = 'wheel-choice-label'; lEl.textContent = label;
-    const sEl = document.createElement('div'); sEl.className = 'wheel-choice-sub';   sEl.textContent = sub;
+    btn.className = 'dt-choice-btn'; btn.setAttribute('role','button');
+    const eEl = document.createElement('div'); eEl.className = 'dt-choice-emoji'; eEl.textContent = emoji;
+    const lEl = document.createElement('div'); lEl.className = 'dt-choice-label'; lEl.textContent = label;
+    const sEl = document.createElement('div'); sEl.className = 'dt-choice-sub';   sEl.textContent = sub;
     btn.append(eEl, lEl, sEl);
     return btn;
   }
 
-  // Entry point — called when 🎡 is tapped.
-  function showWheelOverlay(winner) {
+  // Entry point — called after a game ends (non-draw).
+  function showDareTruthOverlay(winner) {
     clearTimeout(convPromptTimer);
     document.querySelector('.conv-prompt-overlay')?.remove();
-    // Remove the result overlay — its backdrop-filter:blur is very expensive
-    // and would keep running underneath the wheel during the entire spin.
     document.querySelector('.result-overlay')?.remove();
-    // Pause the body::after scanline effect to free compositor during spin.
-    document.body.classList.add('wheel-active');
 
     const ov = document.createElement('div');
-    ov.className = 'wheel-overlay';
+    ov.className = 'dt-overlay';
 
     const closeBtn = document.createElement('div');
-    closeBtn.className = 'wheel-close-btn'; closeBtn.textContent = '×';
+    closeBtn.className = 'dt-close-btn'; closeBtn.textContent = '×';
     closeBtn.setAttribute('role','button');
-    closeBtn.addEventListener('click', () => { ov.remove(); document.body.classList.remove('wheel-active'); });
+    closeBtn.addEventListener('click', () => ov.remove());
     ov.appendChild(closeBtn);
 
-    if (net.mode === 'local') {
-      // Offline: ask who's spinning so we know which wheel to show.
-      wheelShowRoleChoice(ov, winner);
-    } else {
-      // Online: only the loser spins; go straight to dare / truth choice.
-      wheelShowDareTruth(ov, false);
-    }
+    // In local mode, the loser picks; rotated so the winner across the table can read.
+    // In online mode, only the loser sees this and picks.
+    const rotated = net.mode === 'local';
+    dtShowChoice(ov, rotated);
 
     document.body.appendChild(ov);
   }
 
-  // Offline only — "I won / I lost" selection.
-  function wheelShowRoleChoice(ov, winner) {
+  // Loser chooses dare or truth. Winner then asks the question.
+  function dtShowChoice(ov, rotated) {
     const title = document.createElement('div');
-    title.className = 'wheel-choice-title'; title.textContent = 'who\'s spinning?';
+    title.className = 'dt-choice-title'; title.textContent = 'loser picks';
 
-    const wonBtn = makeWheelChoiceBtn('🏆', 'I Won', 'spin for your reward');
-    wonBtn.addEventListener('click', () => wheelShowSpin(ov, 'reward', false));
+    const dareBtn = makeDTChoiceBtn('🎯', 'Dare', 'accept a challenge');
+    dareBtn.addEventListener('click', () => dtShowResult(ov, 'dare', rotated));
 
-    const lostBtn = makeWheelChoiceBtn('😅', 'I Lost', 'dare or truth?');
-    lostBtn.addEventListener('click', () => wheelShowDareTruth(ov, true));
+    const truthBtn = makeDTChoiceBtn('❓', 'Truth', 'answer honestly');
+    truthBtn.addEventListener('click', () => dtShowResult(ov, 'truth', rotated));
 
-    wheelSetContent(ov, title, wonBtn, lostBtn);
+    dtSetContent(ov, title, dareBtn, truthBtn);
   }
 
-  // Loser picks dare or truth before spinning.
-  // rotated=true for offline (winner reads result across the table); false for online.
-  function wheelShowDareTruth(ov, rotated) {
-    const title = document.createElement('div');
-    title.className = 'wheel-choice-title'; title.textContent = 'your fate awaits';
-
-    const dareBtn = makeWheelChoiceBtn('🎯', 'Dare', 'a physical challenge');
-    dareBtn.addEventListener('click', () => wheelShowSpin(ov, 'dare', rotated));
-
-    const truthBtn = makeWheelChoiceBtn('❓', 'Truth', 'answer honestly');
-    truthBtn.addEventListener('click', () => wheelShowSpin(ov, 'truth', rotated));
-
-    wheelSetContent(ov, title, dareBtn, truthBtn);
-  }
-
-  // The spinning wheel itself, colored by type.
-  function wheelShowSpin(ov, type, rotated) {
-    const [c1, c2] = WHEEL_COLORS[type];
-    const gradient = 'conic-gradient(' +
-      Array.from({length:8}, (_,i) => `${i%2?c2:c1} ${i*45}deg ${(i+1)*45}deg`).join(',') + ')';
-
-    const wrap = document.createElement('div'); wrap.className = 'wheel-wrap';
-    const ptr  = document.createElement('div'); ptr.className = 'wheel-ptr';
-    const disk = document.createElement('div'); disk.className = 'wheel-disk';
-    disk.style.background = gradient;
-    disk.style.transform = `rotate(${wheelRot}deg)`; disk.style.transition = 'none';
-    const hub  = document.createElement('div'); hub.className = 'wheel-hub';
-    wrap.append(ptr, disk, hub);
-
-    const typeLabel = document.createElement('div');
-    typeLabel.className = 'wheel-type-label';
-    typeLabel.style.color = c1;
-    typeLabel.textContent = type.toUpperCase();
-
-    const spinBtn = document.createElement('button');
-    spinBtn.className = 'wheel-spin-btn'; spinBtn.textContent = 'SPIN';
-    spinBtn.addEventListener('click', () => {
-      spinBtn.disabled = true;
-      disk.classList.add('spinning');
-      const pool = WHEEL_POOL[type];
-      const idx = Math.floor(Math.random() * pool.length);
-      // Rotate so segment idx centres under the pointer.
-      const curOffset  = ((wheelRot % 360) + 360) % 360;
-      const targetOffset = idx * 45 + 22.5;
-      const delta = ((targetOffset - curOffset) + 360) % 360;
-      wheelRot += 5 * 360 + (delta === 0 ? 360 : delta);
-      disk.style.transition = 'transform 3.5s cubic-bezier(0.17,0.67,0.12,0.99)';
-      disk.style.transform = `rotate(${wheelRot}deg)`;
-      disk.addEventListener('transitionend', () => {
-        disk.classList.remove('spinning');
-        // Delay willChange reset so it doesn't clash with result card appearing
-        setTimeout(() => { disk.style.willChange = 'auto'; }, 400);
-      }, { once: true });
-      setTimeout(() => {
-        showWheelResult(ov, pool[idx], rotated, c1);
-      }, 3620);
-    });
-
-    wheelSetContent(ov, wrap, typeLabel, spinBtn);
-  }
-
-  // Result card. rotated=true (offline loser) flips 180° so the winner reads it
-  // across the table. rotated=false (online, or winner's reward) keeps it upright.
-  function showWheelResult(wheelOv, item, rotated, accent) {
-    const resultOv = document.createElement('div');
-    resultOv.className = 'wheel-result-overlay';
+  // Show a random dare or truth result immediately (no spin).
+  function dtShowResult(ov, type, rotated) {
+    const pool = DT_POOL[type];
+    const item = pool[Math.floor(Math.random() * pool.length)];
+    const accent = DT_ACCENT[type];
 
     const card = document.createElement('div');
-    card.className = 'wheel-result-card' + (rotated ? ' wheel-result-card--rotated' : '');
-    card.style.borderColor = (accent || 'rgba(255,255,255,0.14)') + '55';
+    card.className = 'dt-result-card' + (rotated ? ' dt-result-card--rotated' : '');
+    card.style.borderColor = accent + '55';
+
+    const typeLabel = document.createElement('div');
+    typeLabel.style.cssText = `font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:${accent};margin-bottom:12px;`;
+    typeLabel.textContent = type.toUpperCase();
 
     const emojiEl = document.createElement('div');
-    emojiEl.className = 'wheel-result-emoji'; emojiEl.textContent = item.emoji;
+    emojiEl.className = 'dt-result-emoji'; emojiEl.textContent = item.emoji;
 
     const textEl = document.createElement('div');
-    textEl.className = 'wheel-result-text'; textEl.textContent = item.text;
+    textEl.className = 'dt-result-text'; textEl.textContent = item.text;
 
     const okBtn = document.createElement('div');
-    okBtn.className = 'wheel-result-ok'; okBtn.textContent = 'Got it! 👍';
+    okBtn.className = 'dt-result-ok'; okBtn.textContent = 'Got it!';
     okBtn.setAttribute('role','button');
-    okBtn.addEventListener('click', () => { wheelOv.remove(); document.body.classList.remove('wheel-active'); });
+    okBtn.addEventListener('click', () => ov.remove());
 
-    card.append(emojiEl, textEl, okBtn);
-    resultOv.appendChild(card);
-    wheelOv.appendChild(resultOv);
+    card.append(typeLabel, emojiEl, textEl, okBtn);
+    dtSetContent(ov, card);
 
-    // In online mode, share the result with the opponent so they see it too.
+    // In online mode, share the result with the opponent.
     if (net.mode !== 'local') {
-      sendNet({ type: 'wheel-result', emoji: item.emoji, text: item.text, accent: accent || null });
+      sendNet({ type: 'wheel-result', emoji: item.emoji, text: item.text, accent: accent });
     }
   }
 
@@ -1754,13 +1618,18 @@
     if(data.type==='round-end' && data.rounds) { G.rounds = data.rounds; endRound(true); }
     if(data.type==='wheel-result' && data.emoji && data.text) {
       document.querySelector('.result-overlay')?.remove();
-      document.body.classList.add('wheel-active');
-      const ov = document.createElement('div'); ov.className = 'wheel-overlay';
-      const closeBtn = document.createElement('div'); closeBtn.className = 'wheel-close-btn';
+      const ov = document.createElement('div'); ov.className = 'dt-overlay';
+      const closeBtn = document.createElement('div'); closeBtn.className = 'dt-close-btn';
       closeBtn.textContent = '×'; closeBtn.setAttribute('role','button');
-      closeBtn.addEventListener('click', () => { ov.remove(); document.body.classList.remove('wheel-active'); }); ov.appendChild(closeBtn);
+      closeBtn.addEventListener('click', () => ov.remove()); ov.appendChild(closeBtn);
+      const card = document.createElement('div'); card.className = 'dt-result-card';
+      card.style.borderColor = (data.accent || 'rgba(255,255,255,0.14)') + '55';
+      const emojiEl = document.createElement('div'); emojiEl.className = 'dt-result-emoji'; emojiEl.textContent = data.emoji;
+      const textEl = document.createElement('div'); textEl.className = 'dt-result-text'; textEl.textContent = data.text;
+      const okBtn = document.createElement('div'); okBtn.className = 'dt-result-ok'; okBtn.textContent = 'Got it!';
+      okBtn.setAttribute('role','button'); okBtn.addEventListener('click', () => ov.remove());
+      card.append(emojiEl, textEl, okBtn); dtSetContent(ov, card);
       document.body.appendChild(ov);
-      showWheelResult(ov, { emoji: data.emoji, text: data.text }, false, data.accent || null);
     }
 
   }
